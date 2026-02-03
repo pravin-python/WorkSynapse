@@ -182,6 +182,30 @@ class Settings(BaseSettings):
     RATE_LIMIT_WEBSOCKET_MESSAGES_PER_MINUTE: int = 30
     
     # ===========================================
+    # ANTI-REPLAY SECURITY
+    # ===========================================
+    # Enable/disable anti-replay middleware (disable for testing)
+    ANTIREPLAY_ENABLED: bool = True
+    
+    # Timestamp tolerance in seconds (requests outside this window are rejected)
+    ANTIREPLAY_TIMESTAMP_TOLERANCE: int = 30
+    
+    # Nonce TTL in seconds (how long nonces are stored in Redis)
+    ANTIREPLAY_NONCE_TTL: int = 60
+    
+    # IP rate limit per minute for anti-replay protected endpoints
+    ANTIREPLAY_IP_RATE_LIMIT: int = 100
+    
+    # API key rate limit per minute
+    ANTIREPLAY_API_KEY_RATE_LIMIT: int = 200
+    
+    # Number of suspicious activities before IP is blocked
+    ANTIREPLAY_SUSPICIOUS_THRESHOLD: int = 5
+    
+    # Duration in seconds to block suspicious IPs
+    ANTIREPLAY_BLOCK_DURATION: int = 900  # 15 minutes
+    
+    # ===========================================
     # PYDANTIC SETTINGS CONFIG
     # ===========================================
     model_config = SettingsConfigDict(

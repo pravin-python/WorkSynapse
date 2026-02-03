@@ -120,18 +120,44 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
 def setup_security_middleware(app: FastAPI):
     """Configure all security middleware."""
     
+    # Import anti-replay middleware
+    from app.middleware.antireplay import AntiReplayMiddleware
+    
     # CORS - using origins from config
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.BACKEND_CORS_ORIGINS if settings.BACKEND_CORS_ORIGINS else ["*"],
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
-        allow_headers=["*"],
-        expose_headers=["X-Request-ID", "X-RateLimit-Limit", "X-RateLimit-Remaining"]
+        allow_headers=[
+            "*",
+            "X-API-KEY",
+            "X-TIMESTAMP",
+            "X-NONCE",
+            "X-SIGNATURE"
+        ],
+        expose_headers=[
+            "X-Request-ID",
+            "X-RateLimit-Limit",
+            "X-RateLimit-Remaining",
+            "X-RateLimit-Reset",
+            "X-Nonce-Used",
+            "X-RateLimit-Remaining-IP",
+            "X-RateLimit-Remaining-Key"
+        ]
     )
     
     # Security Headers
     app.add_middleware(SecurityHeadersMiddleware)
+    
+    # Anti-Replay Protection (one-time request validation)
+    if settings.ANTIREPLAY_ENABLED:
+        app.add_middleware(AntiReplayMiddleware)
+        security_logger.log_suspicious_activity(
+            user_id=None,
+            ip_address="system",
+            details="Anti-replay middleware enabled"
+        )
     
     # Rate Limiting
     app.add_middleware(RateLimitMiddleware)
@@ -141,3 +167,4 @@ def setup_security_middleware(app: FastAPI):
     
     # Request ID Tracing
     app.add_middleware(RequestIDMiddleware)
+

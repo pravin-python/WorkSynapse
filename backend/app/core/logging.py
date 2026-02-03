@@ -89,6 +89,46 @@ class SecurityLogger:
             f"Permission denied: {action} on {resource}",
             extra={"user_id": user_id, "event_type": "PERMISSION_DENIED"}
         )
+    
+    @staticmethod
+    def log_replay_attack(ip_address: str, nonce: str, endpoint: str):
+        """Log potential replay attack detection."""
+        logger.error(
+            f"Replay attack detected: nonce={nonce[:8]}... on {endpoint}",
+            extra={"ip_address": ip_address, "event_type": "REPLAY_ATTACK", "nonce": nonce}
+        )
+    
+    @staticmethod
+    def log_signature_failure(ip_address: str, endpoint: str, reason: str = ""):
+        """Log signature verification failure."""
+        logger.warning(
+            f"Signature verification failed for {endpoint}: {reason}",
+            extra={"ip_address": ip_address, "event_type": "SIGNATURE_FAILURE"}
+        )
+    
+    @staticmethod
+    def log_timestamp_drift(ip_address: str, drift_seconds: int, endpoint: str):
+        """Log excessive timestamp drift."""
+        logger.warning(
+            f"Timestamp drift {drift_seconds}s detected for {endpoint}",
+            extra={"ip_address": ip_address, "event_type": "TIMESTAMP_DRIFT", "drift": drift_seconds}
+        )
+    
+    @staticmethod
+    def log_ip_blocked(ip_address: str, reason: str):
+        """Log IP blocking event."""
+        logger.warning(
+            f"IP blocked: {ip_address} - {reason}",
+            extra={"ip_address": ip_address, "event_type": "IP_BLOCKED"}
+        )
+    
+    @staticmethod
+    def log_antireplay_success(ip_address: str, endpoint: str, method: str):
+        """Log successful anti-replay validation."""
+        logger.debug(
+            f"Anti-replay validation passed for {method} {endpoint}",
+            extra={"ip_address": ip_address, "event_type": "ANTIREPLAY_SUCCESS"}
+        )
 
 class AuditLogger:
     """Logger for audit trail events."""

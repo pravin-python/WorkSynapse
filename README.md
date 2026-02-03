@@ -352,6 +352,37 @@ worksynapse/
 | ✅ **Input Validation** | Pydantic schemas for all endpoints |
 | 🔒 **Password Hashing** | Argon2 + bcrypt fallback |
 
+### 🔐 Anti-Replay Protection (NEW!)
+
+WorkSynapse implements **Zepto-style one-time API request protection** where every API request can only be used once:
+
+| Feature | Implementation |
+|---------|----------------|
+| 📝 **HMAC-SHA256 Signatures** | All requests signed with secret key |
+| 🎫 **UUID Nonces** | Each request has unique nonce |
+| ⏰ **Timestamp Validation** | ±30 second window enforcement |
+| 🗄️ **Redis Nonce Store** | 60-second TTL, distributed servers |
+| 🚫 **IP Throttling** | Suspicious activity tracking & blocking |
+
+**Required Headers for Protected Endpoints:**
+```http
+X-API-KEY: your-api-key
+X-TIMESTAMP: 1706979600
+X-NONCE: 123e4567-e89b-12d3-a456-426614174000
+X-SIGNATURE: a1b2c3d4e5f6...
+```
+
+**Error Codes:**
+| Code | Meaning |
+|------|---------|
+| 401 | Missing headers or invalid API key |
+| 403 | Invalid signature or IP blocked |
+| 408 | Timestamp expired |
+| 409 | Nonce already used (replay attack) |
+| 429 | Rate limit exceeded |
+
+See [`backend/docs/ANTI_REPLAY_SECURITY.md`](backend/docs/ANTI_REPLAY_SECURITY.md) for full documentation.
+
 ### Real-time Security
 | Feature | Implementation |
 |---------|----------------|
