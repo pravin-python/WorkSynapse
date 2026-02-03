@@ -1,0 +1,18 @@
+{
+    "name": "worksynapse-desktop",
+    "version": "1.0.0",
+    "main": "dist/main/index.js",
+    "scripts": {
+        "start": "electron .",
+        "build": "tsc"
+    },
+    "dependencies": {
+        "electron-is-dev": "^3.0.1",
+        "python-shell": "^5.0.0"
+    },
+    "devDependencies": {
+        "electron": "^28.0.0",
+        "typescript": "^5.3.3",
+        "@types/node": "^20.10.5"
+    }
+}
