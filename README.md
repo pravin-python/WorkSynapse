@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logos/logo.svg" alt="WorkSynapse Logo" width="200"/>
+  <img src="assets/logos/logo.png" alt="WorkSynapse Logo" width="200"/>
 </p>
 
 <h1 align="center">🧠 WorkSynapse</h1>
