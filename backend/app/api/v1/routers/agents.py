@@ -14,7 +14,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 import json
 
-from app.db.session import get_db
+from app.database.session import get_db
 from app.agents.orchestrator.models import (
     Agent,
     AgentCreate,

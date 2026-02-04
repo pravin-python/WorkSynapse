@@ -11,7 +11,7 @@ from collections import defaultdict
 
 from app.database.session import get_db
 from app.core.security import decode_token
-from app.services.user import user as user_service
+from app.services.user import user_service
 from app.services.redis_service import redis_service
 from app.services.kafka_service import publish_chat_message
 from app.core.logging import logger, security_logger

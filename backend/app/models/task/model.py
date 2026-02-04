@@ -212,7 +212,6 @@ class Task(Base, AuditMixin):
     milestone = relationship("Milestone", back_populates="tasks")
     assignee = relationship("User", back_populates="assigned_tasks", foreign_keys=[assignee_id])
     reporter = relationship("User", foreign_keys=[reporter_id])
-    creator = relationship("User", back_populates="created_tasks", foreign_keys="[Task.created_by_user_id]")
     
     # Self-referential for subtasks
     parent_task = relationship("Task", remote_side=[id], backref="subtasks")
@@ -407,8 +406,13 @@ class TaskComment(Base, AuditMixin):
     
     # Relationships
     task: Mapped["Task"] = relationship(back_populates="comments")
-    author = relationship("User")
-    parent_comment = relationship("TaskComment", remote_side=[id], backref="replies")
+    author = relationship("User", foreign_keys=[author_id])
+    parent_comment = relationship(
+        "TaskComment",
+        remote_side="TaskComment.id",
+        backref="replies",
+        foreign_keys=[parent_comment_id]
+    )
     
     __table_args__ = (
         Index("ix_task_comments_task", "task_id", "created_at"),

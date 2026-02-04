@@ -1,0 +1,248 @@
+/* =============================================================================
+   WORKSYNAPSE TASKS PAGE - KANBAN STYLES
+============================================================================= */
+
+.tasks-page {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Kanban Board */
+.kanban-board {
+    display: flex;
+    gap: var(--space-lg);
+    flex: 1;
+    overflow-x: auto;
+    padding-bottom: var(--space-lg);
+}
+
+.kanban-column {
+    flex: 0 0 300px;
+    min-width: 300px;
+    display: flex;
+    flex-direction: column;
+    background: hsl(var(--color-surface));
+    border-radius: var(--radius-xl);
+    border: 1px solid hsl(var(--color-border));
+}
+
+.column-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md);
+    border-bottom: 1px solid hsl(var(--color-border));
+}
+
+.column-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.column-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: hsl(var(--column-color));
+}
+
+.column-title h3 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: hsl(var(--color-text));
+}
+
+.column-count {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 var(--space-xs);
+    background: hsl(var(--color-bg-tertiary));
+    border-radius: var(--radius-full);
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: hsl(var(--color-text-muted));
+}
+
+.column-tasks {
+    flex: 1;
+    padding: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    overflow-y: auto;
+    max-height: calc(100vh - 300px);
+}
+
+/* Task Card */
+.task-card {
+    background: hsl(var(--card-bg));
+    border: 1px solid hsl(var(--color-border));
+    border-radius: var(--radius-lg);
+    padding: var(--space-md);
+    cursor: grab;
+    transition: all var(--transition-fast);
+    position: relative;
+}
+
+.task-card:hover {
+    border-color: hsl(var(--color-border-hover));
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.task-card:active {
+    cursor: grabbing;
+}
+
+.task-drag {
+    position: absolute;
+    left: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    color: hsl(var(--color-text-muted));
+    transition: opacity var(--transition-fast);
+}
+
+.task-card:hover .task-drag {
+    opacity: 0.5;
+}
+
+.task-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-sm);
+}
+
+.task-project {
+    font-size: 0.7rem;
+    color: hsl(var(--color-primary));
+    font-weight: 500;
+}
+
+.btn-icon.small {
+    width: 24px;
+    height: 24px;
+}
+
+.task-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: hsl(var(--color-text));
+    margin-bottom: var(--space-xs);
+    line-height: 1.4;
+}
+
+.task-description {
+    font-size: 0.75rem;
+    color: hsl(var(--color-text-muted));
+    margin-bottom: var(--space-sm);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.task-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-sm);
+}
+
+.tag {
+    padding: 2px var(--space-sm);
+    background: hsl(var(--color-primary) / 0.1);
+    color: hsl(var(--color-primary));
+    font-size: 0.65rem;
+    font-weight: 600;
+    border-radius: var(--radius-full);
+}
+
+.task-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: var(--space-sm);
+    border-top: 1px solid hsl(var(--color-border));
+}
+
+.task-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+/* Priority Badge */
+.priority-badge {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+}
+
+.priority-badge.low {
+    background: hsl(var(--color-text-muted) / 0.1);
+    color: hsl(var(--color-text-muted));
+}
+
+.priority-badge.medium {
+    background: hsl(var(--color-info) / 0.1);
+    color: hsl(var(--color-info));
+}
+
+.priority-badge.high {
+    background: hsl(var(--color-warning) / 0.1);
+    color: hsl(var(--color-warning));
+}
+
+.priority-badge.urgent {
+    background: hsl(var(--color-error) / 0.1);
+    color: hsl(var(--color-error));
+}
+
+/* Due Date */
+.task-due {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.7rem;
+    color: hsl(var(--color-text-muted));
+}
+
+.task-due.overdue {
+    color: hsl(var(--color-error));
+}
+
+/* Assignee */
+.task-assignee {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, hsl(var(--color-primary)), hsl(var(--color-secondary)));
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border-radius: 50%;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .kanban-board {
+        padding-bottom: var(--space-xl);
+    }
+
+    .kanban-column {
+        flex: 0 0 280px;
+        min-width: 280px;
+    }
+}

@@ -20,7 +20,8 @@ from app.core.config import settings
 config = context.config
 
 # Set the database URL from settings
-config.set_main_option("sqlalchemy.url", settings.SYNC_DATABASE_URL)
+# Set the database URL from settings (escape % for configparser)
+config.set_main_option("sqlalchemy.url", settings.SYNC_DATABASE_URL.replace("%", "%%"))
 
 # Interpret the config file for Python logging
 if config.config_file_name is not None:

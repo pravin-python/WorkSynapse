@@ -70,7 +70,7 @@ user_roles = Table(
     Column("user_id", Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
     Column("role_id", Integer, ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
     Column("assigned_at", DateTime(timezone=True), server_default="now()"),
-    Column("assigned_by_user_id", Integer, ForeignKey("users.id"), nullable=True),
+    Column("assigned_by_user_id", Integer, nullable=True),
 )
 
 # Many-to-many: Roles <-> Permissions
@@ -170,6 +170,7 @@ class User(Base):
     
     # Relationships
     roles: Mapped[List["Role"]] = relationship(
+        "Role",
         secondary=user_roles,
         back_populates="users",
         lazy="selectin"
@@ -180,10 +181,23 @@ class User(Base):
     # Business relationships (defined via string reference)
     projects = relationship("Project", back_populates="owner", foreign_keys="[Project.owner_id]")
     assigned_tasks = relationship("Task", back_populates="assignee", foreign_keys="[Task.assignee_id]")
-    created_tasks = relationship("Task", back_populates="creator", foreign_keys="[Task.created_by_user_id]")
     worklogs = relationship("WorkLog", back_populates="user")
     messages = relationship("Message", back_populates="sender")
-    notes = relationship("Note", back_populates="owner")
+    notes = relationship("Note", back_populates="owner", foreign_keys="[Note.owner_id]")
+    
+    # LLM/AI relationships (User-created agents and API keys)
+    llm_api_keys = relationship(
+        "LLMApiKey",
+        back_populates="user",
+        foreign_keys="[LLMApiKey.user_id]",
+        cascade="all, delete-orphan"
+    )
+    ai_agents = relationship(
+        "UserAIAgent",
+        back_populates="user",
+        foreign_keys="[UserAIAgent.user_id]",
+        cascade="all, delete-orphan"
+    )
     
     # Constraints
     __table_args__ = (
@@ -250,6 +264,7 @@ class Role(Base):
     
     # Relationships
     users: Mapped[List["User"]] = relationship(
+        "User",
         secondary=user_roles,
         back_populates="roles"
     )
@@ -258,7 +273,12 @@ class Role(Base):
         back_populates="roles",
         lazy="selectin"
     )
-    parent_role = relationship("Role", remote_side=[id], backref="child_roles")
+    parent_role = relationship(
+        "Role",
+        remote_side="Role.id",
+        backref="child_roles",
+        foreign_keys=[parent_role_id]
+    )
     
     __table_args__ = (
         CheckConstraint("length(name) >= 2", name="check_role_name_length"),

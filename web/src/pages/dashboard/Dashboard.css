@@ -1,0 +1,518 @@
+/* =============================================================================
+   WORKSYNAPSE DASHBOARD STYLES
+============================================================================= */
+
+.dashboard-page {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Page Header */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--space-xl);
+    flex-wrap: wrap;
+    gap: var(--space-lg);
+}
+
+.header-content h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: var(--space-xs);
+    color: hsl(var(--color-text));
+}
+
+.header-content p {
+    color: hsl(var(--color-text-muted));
+}
+
+.header-actions {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+/* Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: var(--space-lg);
+    margin-bottom: var(--space-2xl);
+}
+
+.stat-card {
+    background: hsl(var(--card-bg));
+    border: 1px solid hsl(var(--color-border));
+    border-radius: var(--radius-xl);
+    padding: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    position: relative;
+    overflow: hidden;
+    transition: all var(--transition-base);
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+
+.stat-card.gradient-primary::before {
+    background: linear-gradient(90deg, hsl(var(--color-primary)), hsl(var(--color-secondary)));
+}
+
+.stat-card.gradient-secondary::before {
+    background: linear-gradient(90deg, hsl(var(--color-secondary)), hsl(var(--color-accent)));
+}
+
+.stat-card.gradient-accent::before {
+    background: linear-gradient(90deg, hsl(var(--color-accent)), hsl(var(--color-primary)));
+}
+
+.stat-card.gradient-success::before {
+    background: linear-gradient(90deg, hsl(var(--color-success)), hsl(120 60% 60%));
+}
+
+.stat-card.gradient-info::before {
+    background: linear-gradient(90deg, hsl(var(--color-info)), hsl(var(--color-primary)));
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: hsl(var(--color-primary) / 0.1);
+    color: hsl(var(--color-primary));
+    border-radius: var(--radius-lg);
+}
+
+.stat-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: hsl(var(--color-text));
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: hsl(var(--color-text-muted));
+}
+
+.stat-trend {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: 0.75rem;
+    color: hsl(var(--color-text-muted));
+}
+
+.stat-trend.up {
+    color: hsl(var(--color-success));
+}
+
+.stat-trend.down {
+    color: hsl(var(--color-error));
+}
+
+/* Dashboard Grid */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: var(--space-lg);
+}
+
+.dashboard-card {
+    background: hsl(var(--card-bg));
+    border: 1px solid hsl(var(--color-border));
+    border-radius: var(--radius-xl);
+    padding: var(--space-lg);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-lg);
+}
+
+.card-header h2 {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: 1rem;
+    font-weight: 600;
+    color: hsl(var(--color-text));
+}
+
+.card-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: 0.875rem;
+    color: hsl(var(--color-primary));
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.card-link:hover {
+    text-decoration: underline;
+}
+
+/* Progress Card */
+.progress-card {
+    grid-column: span 4;
+}
+
+.progress-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-lg);
+}
+
+.progress-ring {
+    position: relative;
+    width: 160px;
+    height: 160px;
+}
+
+.progress-ring svg {
+    width: 100%;
+    height: 100%;
+}
+
+.progress-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.progress-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: hsl(var(--color-text));
+}
+
+.progress-label {
+    font-size: 0.875rem;
+    color: hsl(var(--color-text-muted));
+}
+
+.progress-stats {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.progress-stat {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: 0.875rem;
+}
+
+.progress-stat .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.progress-stat .dot.success {
+    background: hsl(var(--color-success));
+}
+
+.progress-stat .dot.warning {
+    background: hsl(var(--color-warning));
+}
+
+.progress-stat .dot.error {
+    background: hsl(var(--color-error));
+}
+
+.progress-stat .label {
+    flex: 1;
+    color: hsl(var(--color-text-secondary));
+}
+
+.progress-stat .value {
+    font-weight: 600;
+    color: hsl(var(--color-text));
+}
+
+/* Activity Card */
+.activity-card {
+    grid-column: span 5;
+}
+
+.activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-md);
+    padding: var(--space-sm);
+    border-radius: var(--radius-md);
+    transition: background var(--transition-fast);
+}
+
+.activity-item:hover {
+    background: hsl(var(--color-surface-hover));
+}
+
+.activity-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: hsl(var(--color-primary) / 0.1);
+    color: hsl(var(--color-primary));
+    border-radius: var(--radius-md);
+    flex-shrink: 0;
+}
+
+.activity-icon.task_complete {
+    background: hsl(var(--color-success) / 0.1);
+    color: hsl(var(--color-success));
+}
+
+.activity-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.activity-user {
+    font-weight: 600;
+    color: hsl(var(--color-text));
+    margin-right: var(--space-xs);
+}
+
+.activity-message {
+    color: hsl(var(--color-text-secondary));
+    font-size: 0.875rem;
+}
+
+.activity-time {
+    font-size: 0.75rem;
+    color: hsl(var(--color-text-muted));
+    white-space: nowrap;
+}
+
+/* Quick Actions Card */
+.quick-actions-card {
+    grid-column: span 3;
+}
+
+.quick-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-md);
+}
+
+.quick-action {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-lg);
+    background: hsl(var(--color-surface));
+    border: 1px solid hsl(var(--color-border));
+    border-radius: var(--radius-lg);
+    text-decoration: none;
+    transition: all var(--transition-fast);
+}
+
+.quick-action:hover {
+    background: hsl(var(--color-surface-hover));
+    border-color: hsl(var(--color-primary));
+    transform: translateY(-2px);
+}
+
+.action-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, hsl(var(--color-primary)), hsl(var(--color-secondary)));
+    color: white;
+    border-radius: var(--radius-md);
+}
+
+.quick-action span {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: hsl(var(--color-text));
+}
+
+/* AI Card */
+.ai-card {
+    grid-column: span 6;
+}
+
+.ai-insights {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.insight-item {
+    display: flex;
+    gap: var(--space-md);
+    padding: var(--space-md);
+    background: hsl(var(--color-surface));
+    border-radius: var(--radius-lg);
+}
+
+.insight-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.insight-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.insight-content strong {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: hsl(var(--color-text));
+}
+
+.insight-content span {
+    font-size: 0.875rem;
+    color: hsl(var(--color-text-secondary));
+}
+
+/* Upcoming Card */
+.upcoming-card {
+    grid-column: span 6;
+}
+
+.upcoming-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.upcoming-item {
+    display: flex;
+    gap: var(--space-md);
+    padding: var(--space-md);
+    background: hsl(var(--color-surface));
+    border-radius: var(--radius-lg);
+}
+
+.upcoming-date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    padding: var(--space-sm);
+    background: linear-gradient(135deg, hsl(var(--color-primary)), hsl(var(--color-secondary)));
+    border-radius: var(--radius-md);
+    color: white;
+}
+
+.upcoming-date .day {
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.upcoming-date .month {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.upcoming-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    justify-content: center;
+}
+
+.upcoming-content strong {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: hsl(var(--color-text));
+}
+
+.upcoming-content span {
+    font-size: 0.875rem;
+    color: hsl(var(--color-text-muted));
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .dashboard-grid {
+        grid-template-columns: repeat(6, 1fr);
+    }
+
+    .progress-card,
+    .activity-card,
+    .quick-actions-card {
+        grid-column: span 3;
+    }
+
+    .ai-card,
+    .upcoming-card {
+        grid-column: span 6;
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .progress-card,
+    .activity-card,
+    .quick-actions-card,
+    .ai-card,
+    .upcoming-card {
+        grid-column: span 1;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}

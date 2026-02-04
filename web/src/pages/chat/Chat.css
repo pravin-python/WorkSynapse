@@ -1,0 +1,284 @@
+/* =============================================================================
+   WORKSYNAPSE CHAT PAGE STYLES
+============================================================================= */
+
+.chat-page {
+    display: flex;
+    height: calc(100vh - 140px);
+    margin: calc(-1 * var(--space-xl));
+    background: hsl(var(--color-bg));
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    border: 1px solid hsl(var(--color-border));
+}
+
+/* Chat Sidebar */
+.chat-sidebar {
+    width: 280px;
+    background: hsl(var(--color-surface));
+    border-right: 1px solid hsl(var(--color-border));
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-sidebar .sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-lg);
+    border-bottom: 1px solid hsl(var(--color-border));
+}
+
+.chat-sidebar .sidebar-header h2 {
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+.channel-search {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    background: hsl(var(--input-bg));
+    border: 1px solid hsl(var(--color-border));
+    border-radius: var(--radius-md);
+}
+
+.channel-search svg {
+    color: hsl(var(--color-text-muted));
+}
+
+.channel-search input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: hsl(var(--color-text));
+    font-size: 0.875rem;
+    outline: none;
+}
+
+.channels-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-sm);
+}
+
+.channel-section {
+    margin-bottom: var(--space-lg);
+}
+
+.channel-section h3 {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: hsl(var(--color-text-muted));
+    padding: var(--space-sm) var(--space-sm);
+}
+
+.channel-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-md);
+    color: hsl(var(--color-text-secondary));
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.channel-item:hover {
+    background: hsl(var(--color-surface-hover));
+    color: hsl(var(--color-text));
+}
+
+.channel-item.active {
+    background: hsl(var(--color-primary) / 0.1);
+    color: hsl(var(--color-primary));
+}
+
+.channel-name {
+    flex: 1;
+    text-align: left;
+}
+
+.unread-badge {
+    min-width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 var(--space-xs);
+    background: hsl(var(--color-primary));
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 600;
+    border-radius: var(--radius-full);
+}
+
+.dm-avatar {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, hsl(var(--color-primary)), hsl(var(--color-secondary)));
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border-radius: 50%;
+}
+
+/* Chat Main */
+.chat-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md) var(--space-lg);
+    background: hsl(var(--color-surface));
+    border-bottom: 1px solid hsl(var(--color-border));
+}
+
+.chat-info {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.chat-info h2 {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.chat-actions {
+    display: flex;
+    gap: var(--space-xs);
+}
+
+/* Messages */
+.messages-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.message {
+    display: flex;
+    gap: var(--space-sm);
+    max-width: 70%;
+}
+
+.message.own {
+    flex-direction: row-reverse;
+    margin-left: auto;
+}
+
+.message-avatar {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, hsl(var(--color-secondary)), hsl(var(--color-accent)));
+    color: white;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.message-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.message.own .message-content {
+    align-items: flex-end;
+}
+
+.message-sender {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: hsl(var(--color-text-secondary));
+}
+
+.message-bubble {
+    padding: var(--space-sm) var(--space-md);
+    background: hsl(var(--color-surface));
+    border: 1px solid hsl(var(--color-border));
+    border-radius: var(--radius-lg);
+}
+
+.message.own .message-bubble {
+    background: hsl(var(--color-primary));
+    border-color: hsl(var(--color-primary));
+}
+
+.message-bubble p {
+    font-size: 0.875rem;
+    color: hsl(var(--color-text));
+}
+
+.message.own .message-bubble p {
+    color: white;
+}
+
+.message-time {
+    font-size: 0.65rem;
+    color: hsl(var(--color-text-muted));
+}
+
+/* Message Form */
+.message-form {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-lg);
+    background: hsl(var(--color-surface));
+    border-top: 1px solid hsl(var(--color-border));
+}
+
+.message-form input {
+    flex: 1;
+    padding: var(--space-sm) var(--space-md);
+    background: hsl(var(--input-bg));
+    border: 1px solid hsl(var(--color-border));
+    border-radius: var(--radius-md);
+    color: hsl(var(--color-text));
+    font-size: 0.875rem;
+    outline: none;
+}
+
+.message-form input:focus {
+    border-color: hsl(var(--color-primary));
+}
+
+.send-btn {
+    padding: var(--space-sm);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .chat-sidebar {
+        display: none;
+    }
+
+    .message {
+        max-width: 85%;
+    }
+}

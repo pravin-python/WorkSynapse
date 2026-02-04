@@ -116,6 +116,17 @@ from app.models.worklog.model import (
     SecurityAuditLog,
 )
 
+# LLM Key Management Models
+from app.models.llm.model import (
+    LLMKeyProvider,
+    LLMKeyProviderType,
+    LLMApiKey,
+    UserAIAgent,
+    UserAgentType,
+    UserAgentStatus,
+    UserAgentSession,
+)
+
 
 # All models for Alembic autogenerate
 __all__ = [

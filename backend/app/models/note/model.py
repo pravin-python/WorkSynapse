@@ -176,7 +176,7 @@ class Note(Base, AuditMixin):
     search_vector: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # For FTS indexing
     
     # Relationships
-    owner = relationship("User", back_populates="notes")
+    owner = relationship("User", back_populates="notes", foreign_keys=[owner_id])
     folder: Mapped[Optional["NoteFolder"]] = relationship(back_populates="notes")
     project = relationship("Project", back_populates="notes")
     shares: Mapped[List["NoteShare"]] = relationship(

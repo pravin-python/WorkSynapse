@@ -211,8 +211,8 @@ class Message(Base):
         nullable=True
     )
     
-    # Metadata
-    metadata: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)  # For links, embeds, etc.
+    # Extra data (for links, embeds, etc.)
+    extra_data: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     
     # Mentions
     mentions_everyone: Mapped[bool] = mapped_column(Boolean, default=False)

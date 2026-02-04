@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, EmailStr
 
 from app.database.session import get_db
-from app.services.user import user as user_service
+from app.services.user import user_service
 from app.core.security import (
     verify_password,
     create_token_pair,

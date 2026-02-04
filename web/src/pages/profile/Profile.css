@@ -1,0 +1,82 @@
+/* Profile Page Styles */
+.profile-page {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.profile-content {
+    padding-top: var(--space-lg);
+}
+
+.profile-card {
+    background: hsl(var(--card-bg));
+    border: 1px solid hsl(var(--color-border));
+    border-radius: var(--radius-xl);
+    padding: var(--space-2xl);
+    text-align: center;
+}
+
+.profile-avatar {
+    position: relative;
+    display: inline-block;
+    margin-bottom: var(--space-lg);
+}
+
+.avatar-large {
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, hsl(var(--color-primary)), hsl(var(--color-secondary)));
+    color: white;
+    font-size: 3rem;
+    font-weight: 700;
+    border-radius: 50%;
+}
+
+.avatar-edit {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: hsl(var(--color-surface));
+    border: 2px solid hsl(var(--color-border));
+    border-radius: 50%;
+    color: hsl(var(--color-text));
+    cursor: pointer;
+}
+
+.profile-card h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: var(--space-xs);
+}
+
+.role-badge {
+    display: inline-block;
+    padding: var(--space-xs) var(--space-md);
+    background: hsl(var(--color-primary) / 0.1);
+    color: hsl(var(--color-primary));
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: var(--radius-full);
+    margin-bottom: var(--space-xl);
+}
+
+.profile-details {
+    margin-bottom: var(--space-xl);
+}
+
+.detail-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+    color: hsl(var(--color-text-secondary));
+}

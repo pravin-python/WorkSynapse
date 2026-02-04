@@ -533,8 +533,8 @@ class AgentMessage(Base):
     tokens_prompt: Mapped[int] = mapped_column(Integer, default=0)
     tokens_completion: Mapped[int] = mapped_column(Integer, default=0)
     
-    # Metadata
-    metadata: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    # Extra data
+    extra_data: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     
     # Feedback
     user_rating: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # 1-5

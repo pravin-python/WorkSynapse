@@ -64,7 +64,7 @@ class Agent(Base):
     - Permission settings
     """
 
-    __tablename__ = "agents"
+    __tablename__ = "orchestrator_agents"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     
@@ -109,8 +109,9 @@ class Agent(Base):
     can_stop_itself: Mapped[bool] = mapped_column(Boolean, default=False)
     
     # Relationships
-    created_by: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True), nullable=True
+    created_by: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True
     )
     
     # Reverse relationships
@@ -154,10 +155,10 @@ class AgentConversation(Base):
     
     # Foreign keys
     agent_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("agents.id", ondelete="CASCADE"), index=True
+        Integer, ForeignKey("orchestrator_agents.id", ondelete="CASCADE"), index=True
     )
-    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True), nullable=True, index=True
+    user_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
     
     # Thread identifier for LangGraph
@@ -168,7 +169,7 @@ class AgentConversation(Base):
     # Conversation data
     title: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     messages: Mapped[List[Dict[str, Any]]] = mapped_column(JSONB, default=list)
-    metadata: Mapped[Dict[str, Any]] = mapped_column(JSONB, default=dict)
+    meta_data: Mapped[Dict[str, Any]] = mapped_column(JSONB, default=dict)
     
     # Status
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -212,15 +213,16 @@ class AgentExecution(Base):
     
     # Foreign keys
     agent_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("agents.id", ondelete="CASCADE"), index=True
+        Integer, ForeignKey("orchestrator_agents.id", ondelete="CASCADE"), index=True
     )
     conversation_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("agent_conversations.id", ondelete="SET NULL"), nullable=True
     )
     
     # User who triggered execution
-    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True), nullable=True, index=True
+    user_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True, index=True
     )
     
     # Execution data
@@ -243,7 +245,7 @@ class AgentExecution(Base):
     error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
     # Additional metadata
-    metadata: Mapped[Dict[str, Any]] = mapped_column(JSONB, default=dict)
+    meta_data: Mapped[Dict[str, Any]] = mapped_column(JSONB, default=dict)
     
     # Relationships
     agent: Mapped["Agent"] = relationship("Agent", back_populates="executions")

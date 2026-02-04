@@ -134,19 +134,21 @@ class Settings(BaseSettings):
     # ===========================================
     # CORS
     # ===========================================
-    BACKEND_CORS_ORIGINS: List[str] = []
+    # Store as string to avoid pydantic-settings auto-parsing as JSON
+    BACKEND_CORS_ORIGINS_STR: str = ""
     
-    @field_validator("BACKEND_CORS_ORIGINS", mode='before')
-    @classmethod
-    def assemble_cors_origins(cls, v: Any) -> List[str]:
-        """Parse CORS origins from comma-separated string or list."""
-        if isinstance(v, str):
-            if v.startswith("["):
-                # JSON array format
-                import json
-                return json.loads(v)
-            return [origin.strip() for origin in v.split(",") if origin.strip()]
-        return v or []
+    @property
+    def BACKEND_CORS_ORIGINS(self) -> List[str]:
+        """Parse CORS origins from comma-separated string."""
+        v = self.BACKEND_CORS_ORIGINS_STR
+        if not v:
+            return []
+        if v.startswith("["):
+            # JSON array format
+            import json
+            return json.loads(v)
+        # Comma-separated format
+        return [origin.strip() for origin in v.split(",") if origin.strip()]
     
     # ===========================================
     # EXTERNAL SERVICES

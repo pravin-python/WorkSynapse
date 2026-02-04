@@ -241,7 +241,7 @@ class ActivityLog(Base):
     severity: Mapped[str] = mapped_column(String(20), default="INFO")  # DEBUG, INFO, WARNING, ERROR, CRITICAL
     
     # Additional metadata
-    metadata: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    extra_metadata: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     
     # Performance tracking
     duration_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)

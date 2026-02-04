@@ -12,6 +12,7 @@ from app.middleware.security import setup_security_middleware
 from app.api.v1.api_router import api_router
 from app.services.redis_service import redis_service
 from app.services.kafka_service import kafka_service
+from app.core.activity_logger import setup_activity_logging
 
 
 @asynccontextmanager
@@ -46,6 +47,9 @@ async def lifespan(app: FastAPI):
         logger.info("Kafka producer started")
     except Exception as e:
         logger.warning(f"Kafka producer failed to start: {e}")
+    
+    # Setup activity logging
+    setup_activity_logging()
     
     logger.info("WorkSynapse API started successfully")
     
@@ -146,6 +150,8 @@ async def root():
 
 # Include API router
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+
 
 
 # Global exception handler
