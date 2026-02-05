@@ -52,7 +52,7 @@ class ExecutionStatus(str, enum.Enum):
     CANCELLED = "cancelled"
 
 
-class Agent(Base):
+class OrchestratorAgent(Base):
     """
     Agent model representing a dynamically created AI agent.
 
@@ -123,7 +123,7 @@ class Agent(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<Agent(id={self.id}, name='{self.name}', provider='{self.llm_provider}')>"
+        return f"<OrchestratorAgent(id={self.id}, name='{self.name}', provider='{self.llm_provider}')>"
 
     def get_tools_list(self) -> List[str]:
         """Get list of tool names assigned to this agent."""
@@ -175,7 +175,7 @@ class AgentConversation(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     
     # Relationships
-    agent: Mapped["Agent"] = relationship("Agent", back_populates="conversations")
+    agent: Mapped["OrchestratorAgent"] = relationship("OrchestratorAgent", back_populates="conversations")
     executions: Mapped[List["AgentExecution"]] = relationship(
         "AgentExecution", back_populates="conversation", cascade="all, delete-orphan"
     )
@@ -248,7 +248,7 @@ class AgentExecution(Base):
     meta_data: Mapped[Dict[str, Any]] = mapped_column(JSONB, default=dict)
     
     # Relationships
-    agent: Mapped["Agent"] = relationship("Agent", back_populates="executions")
+    agent: Mapped["OrchestratorAgent"] = relationship("OrchestratorAgent", back_populates="executions")
     conversation: Mapped[Optional["AgentConversation"]] = relationship(
         "AgentConversation", back_populates="executions"
     )

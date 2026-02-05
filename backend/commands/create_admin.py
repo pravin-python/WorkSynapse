@@ -22,7 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from commands.base_command import BaseCommand
 from app.services.user import user_service
-from app.models.user.model import User, Role, UserRole, UserStatus
+from app.models.user.model import User, Role, UserRole, UserStatus, AccountType
 
 
 class CreateAdminCommand(BaseCommand):
@@ -178,6 +178,7 @@ class CreateAdminCommand(BaseCommand):
             status=UserStatus.ACTIVE,
             email_verified=True,
             role=role_enum,  # Legacy field for backwards compatibility
+            account_type=AccountType.SUPERUSER if superuser else AccountType.STAFF,
         )
         
         # Assign role via many-to-many relationship

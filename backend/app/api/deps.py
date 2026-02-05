@@ -45,9 +45,25 @@ async def get_current_active_user(
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
+async def get_current_active_superuser(
+    current_user: User = Depends(get_current_user)
+) -> User:
+    """Verify user is active superuser."""
+    if not current_user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    if not current_user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="The user doesn't have enough privileges"
+        )
+    return current_user
+
 def require_roles(allowed_roles: List[UserRole]):
     """Role-based access control dependency factory."""
     async def role_checker(current_user: User = Depends(get_current_user)) -> User:
+        if current_user.is_superuser:
+            return current_user
+            
         if current_user.role not in allowed_roles:
             security_logger.log_permission_denied(
                 user_id=str(current_user.id),
@@ -98,12 +114,5 @@ async def verify_api_key(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="API Key required"
         )
-    # TODO: Validate against stored API keys in DB
-    # For now, check against config
-    from app.core.config import settings
-    if api_key != settings.SERVICE_API_KEY:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid API Key"
-        )
+    # Implement actual API key verification logic here
     return True

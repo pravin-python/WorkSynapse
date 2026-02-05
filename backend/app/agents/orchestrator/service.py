@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, and_
 
 from app.agents.orchestrator.models import (
-    Agent,
+    OrchestratorAgent,
     AgentConversation,
     AgentExecution,
     AgentCreate,
@@ -48,7 +48,7 @@ class AgentService:
         self,
         data: AgentCreate,
         created_by: Optional[UUID] = None,
-    ) -> Agent:
+    ) -> OrchestratorAgent:
         """
         Create a new agent.
 
@@ -57,7 +57,7 @@ class AgentService:
             created_by: User ID who created the agent
 
         Returns:
-            Created Agent model
+            Created OrchestratorAgent model
         """
         # Convert tools to list of dicts if needed
         tools_data = [
@@ -71,7 +71,7 @@ class AgentService:
         # Convert advanced config
         config_data = data.config.model_dump() if hasattr(data.config, "model_dump") else data.config
 
-        agent = Agent(
+        agent = OrchestratorAgent(
             name=data.name,
             description=data.description,
             system_prompt=data.system_prompt,
@@ -98,7 +98,7 @@ class AgentService:
         logger.info(f"Created agent: {agent.id} - {agent.name}")
         return agent
 
-    async def get_agent(self, agent_id: int) -> Agent:
+    async def get_agent(self, agent_id: int) -> OrchestratorAgent:
         """
         Get an agent by ID.
 
@@ -106,13 +106,13 @@ class AgentService:
             agent_id: Agent ID
 
         Returns:
-            Agent model
+            OrchestratorAgent model
 
         Raises:
             AgentNotFoundError: If agent not found
         """
         result = await self.db.execute(
-            select(Agent).where(Agent.id == agent_id)
+            select(OrchestratorAgent).where(OrchestratorAgent.id == agent_id)
         )
         agent = result.scalar_one_or_none()
 
@@ -145,18 +145,18 @@ class AgentService:
         if user_id:
             if include_public:
                 conditions.append(
-                    (Agent.created_by == user_id) | (Agent.is_public == True)
+                    (OrchestratorAgent.created_by == user_id) | (OrchestratorAgent.is_public == True)
                 )
             else:
-                conditions.append(Agent.created_by == user_id)
+                conditions.append(OrchestratorAgent.created_by == user_id)
 
-        query = select(Agent)
+        query = select(OrchestratorAgent)
         if conditions:
             query = query.where(and_(*conditions))
-        query = query.order_by(Agent.created_at.desc())
+        query = query.order_by(OrchestratorAgent.created_at.desc())
 
         # Get total count
-        count_query = select(Agent.id)
+        count_query = select(OrchestratorAgent.id)
         if conditions:
             count_query = count_query.where(and_(*conditions))
         count_result = await self.db.execute(count_query)
@@ -182,7 +182,7 @@ class AgentService:
         agent_id: int,
         data: AgentUpdate,
         user_id: Optional[UUID] = None,
-    ) -> Agent:
+    ) -> OrchestratorAgent:
         """
         Update an agent.
 
@@ -192,7 +192,7 @@ class AgentService:
             user_id: User making the update (for permission check)
 
         Returns:
-            Updated Agent model
+            Updated OrchestratorAgent model
         """
         agent = await self.get_agent(agent_id)
 
@@ -250,7 +250,7 @@ class AgentService:
         agent = await self.get_agent(agent_id)
 
         await self.db.execute(
-            delete(Agent).where(Agent.id == agent_id)
+            delete(OrchestratorAgent).where(OrchestratorAgent.id == agent_id)
         )
         await self.db.commit()
 

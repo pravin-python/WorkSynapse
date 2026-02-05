@@ -136,6 +136,13 @@ class Project(Base, AuditMixin):
     notes = relationship("Note", back_populates="project")
     channels = relationship("Channel", back_populates="project")
     
+    # Client access - assigned client users
+    assigned_users = relationship(
+        "User",
+        secondary="user_project_assignments",
+        back_populates="assigned_projects"
+    )
+    
     __table_args__ = (
         CheckConstraint("length(name) >= 1", name="check_project_name_length"),
         CheckConstraint("length(key) >= 2 AND length(key) <= 10", name="check_project_key_length"),

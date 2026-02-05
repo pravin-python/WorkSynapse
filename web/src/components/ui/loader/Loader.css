@@ -1,0 +1,93 @@
+.global-loader-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: hsl(var(--color-bg) / 0.8);
+    backdrop-filter: blur(8px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.global-loader-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.loader-animation {
+    display: flex;
+    gap: 8px;
+}
+
+.loader-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: hsl(var(--color-primary));
+    animation: bounce 0.5s alternate infinite ease-in-out;
+}
+
+.loader-dot:nth-child(2) {
+    animation-delay: 0.1s;
+}
+
+.loader-dot:nth-child(3) {
+    animation-delay: 0.2s;
+}
+
+.loader-dot:nth-child(4) {
+    animation-delay: 0.3s;
+}
+
+.loader-text {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.25rem;
+    color: hsl(var(--color-text-muted));
+    letter-spacing: 0.05em;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes bounce {
+    from {
+        transform: translateY(0);
+    }
+
+    to {
+        transform: translateY(-12px);
+    }
+}
+
+/* Theme Specific Adjustments */
+/* Brutalist: Square dots, solid background */
+.theme-brutalist .global-loader-overlay {
+    background: hsl(var(--color-bg) / 0.95);
+    backdrop-filter: none;
+}
+
+.theme-brutalist .loader-dot {
+    border-radius: 0;
+    width: 16px;
+    height: 16px;
+}
+
+/* Retro: 8-bit style */
+.theme-retro .loader-dot {
+    border-radius: 0;
+    box-shadow: 2px 2px 0 hsl(var(--color-text));
+}
+
+/* Neon: Glowing dots */
+.theme-neon .loader-dot {
+    box-shadow: 0 0 10px hsl(var(--color-primary));
+}
+
+.theme-neon .loader-text {
+    text-shadow: 0 0 8px hsl(var(--color-primary) / 0.5);
+}

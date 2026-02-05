@@ -135,7 +135,8 @@ class Settings(BaseSettings):
     # CORS
     # ===========================================
     # Store as string to avoid pydantic-settings auto-parsing as JSON
-    BACKEND_CORS_ORIGINS_STR: str = ""
+    from pydantic import Field
+    BACKEND_CORS_ORIGINS_STR: str = Field(default="", validation_alias="BACKEND_CORS_ORIGINS")
     
     @property
     def BACKEND_CORS_ORIGINS(self) -> List[str]:

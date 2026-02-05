@@ -16,12 +16,12 @@ from functools import wraps
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
-from jose import JWTError, jwt
-from pydantic import BaseModel
-import datetime
+from app.core.security import decode_token, TokenPayload
+
 import hashlib
 import re
 import logging
+import datetime
 
 from app.core.config import settings
 from app.database.session import get_db
@@ -34,71 +34,6 @@ security_logger = logging.getLogger("security")
 
 # JWT Bearer auth
 bearer_scheme = HTTPBearer(auto_error=False)
-
-
-# =============================================================================
-# TOKEN HANDLING
-# =============================================================================
-
-class TokenData(BaseModel):
-    """JWT token payload."""
-    user_id: int
-    email: str
-    exp: datetime.datetime
-    jti: str  # JWT ID for token revocation
-
-
-def create_access_token(
-    user: User,
-    expires_delta: Optional[datetime.timedelta] = None
-) -> str:
-    """Create a JWT access token for a user."""
-    import uuid
-    
-    if expires_delta:
-        expire = datetime.datetime.now(datetime.timezone.utc) + expires_delta
-    else:
-        expire = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(
-            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
-        )
-    
-    to_encode = {
-        "sub": str(user.id),
-        "email": user.email,
-        "exp": expire,
-        "jti": str(uuid.uuid4()),
-        "iat": datetime.datetime.now(datetime.timezone.utc),
-    }
-    
-    encoded_jwt = jwt.encode(
-        to_encode, 
-        settings.SECRET_KEY, 
-        algorithm=settings.ALGORITHM
-    )
-    return encoded_jwt
-
-
-def decode_token(token: str) -> Optional[TokenData]:
-    """Decode and validate a JWT token."""
-    try:
-        payload = jwt.decode(
-            token, 
-            settings.SECRET_KEY, 
-            algorithms=[settings.ALGORITHM]
-        )
-        
-        user_id = int(payload.get("sub"))
-        email = payload.get("email")
-        exp = datetime.datetime.fromtimestamp(payload.get("exp"), tz=datetime.timezone.utc)
-        jti = payload.get("jti")
-        
-        if not all([user_id, email, exp, jti]):
-            return None
-        
-        return TokenData(user_id=user_id, email=email, exp=exp, jti=jti)
-    
-    except JWTError:
-        return None
 
 
 # =============================================================================
@@ -125,19 +60,16 @@ async def get_current_user(
         raise credentials_exception
     
     token_data = decode_token(credentials.credentials)
-    if token_data is None:
+    if not token_data:
         raise credentials_exception
     
-    # Check token expiration
-    if datetime.datetime.now(datetime.timezone.utc) > token_data.exp:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has expired",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
     # Get user from database
-    user = await user_service.get(db, token_data.user_id)
+    try:
+        user_id = int(token_data.sub)
+    except ValueError:
+        raise credentials_exception
+
+    user = await user_service.get(db, user_id)
     if user is None:
         raise credentials_exception
     

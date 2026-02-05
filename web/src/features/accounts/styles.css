@@ -1,0 +1,261 @@
+/* e:\Django_project\practice\WorkSynapse\web\src\features\accounts\styles.css */
+
+/* Layout & Page Structure */
+.accounts-page,
+.account-create-page,
+.account-edit-page {
+    padding: var(--space-xl);
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    animation: fadeIn 0.4s ease-out;
+}
+
+.page-header {
+    margin-bottom: var(--space-xl);
+}
+
+.page-header h1 {
+    font-size: 2rem;
+    color: hsl(var(--color-text));
+    margin-bottom: var(--space-xs);
+}
+
+.page-header p {
+    color: hsl(var(--color-text-muted));
+    font-size: 1rem;
+}
+
+/* -----------------------------------------------------------------------------
+   TYPE SELECTOR CARDS (New Implementation)
+----------------------------------------------------------------------------- */
+.type-selector-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: var(--space-lg);
+    margin-bottom: var(--space-2xl);
+}
+
+.type-selection-card {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-lg);
+    padding: var(--space-xl);
+    background: hsl(var(--card-bg));
+    border: 2px solid hsl(var(--color-border));
+    border-radius: var(--radius-xl);
+    cursor: pointer;
+    text-align: left;
+    transition: all var(--transition-base);
+    overflow: hidden;
+    height: 100%;
+}
+
+/* Hover State */
+.type-selection-card:hover {
+    border-color: hsl(var(--color-primary-light));
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Active/Selected State */
+.type-selection-card.active {
+    border-color: hsl(var(--color-primary));
+    background: hsl(var(--color-surface-active));
+    box-shadow:
+        0 0 0 1px hsl(var(--color-primary)),
+        var(--shadow-lg);
+}
+
+/* Icon Wrapper */
+.card-icon-wrapper {
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+    border-radius: var(--radius-lg);
+    background: hsl(var(--color-bg-secondary));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: hsl(var(--color-text-secondary));
+    transition: all var(--transition-fast);
+}
+
+.type-selection-card:hover .card-icon-wrapper {
+    background: hsl(var(--color-primary) / 0.1);
+    color: hsl(var(--color-primary));
+}
+
+.type-selection-card.active .card-icon-wrapper {
+    background: hsl(var(--color-primary));
+    color: hsl(var(--color-text-inverse));
+}
+
+/* Content */
+.card-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.card-content h3 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: hsl(var(--color-text));
+    margin: 0;
+}
+
+.card-content p {
+    font-size: 0.875rem;
+    color: hsl(var(--color-text-muted));
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* Checkmark Indicator */
+.card-check {
+    position: absolute;
+    top: var(--space-lg);
+    right: var(--space-lg);
+    color: hsl(var(--color-primary));
+    animation: scaleIn 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* -----------------------------------------------------------------------------
+   FORM CONTAINER & GRID
+----------------------------------------------------------------------------- */
+.form-card-container {
+    background: hsl(var(--card-bg));
+    border: 1px solid hsl(var(--color-border));
+    border-radius: var(--radius-xl);
+    padding: var(--space-2xl);
+    box-shadow: var(--shadow-md);
+}
+
+.account-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xl);
+}
+
+.form-section h3 {
+    margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-sm);
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: hsl(var(--color-text));
+    border-bottom: 1px solid hsl(var(--color-border));
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--space-lg);
+}
+
+/* Input Fields overrides for standard usage */
+.form-group label {
+    display: block;
+    margin-bottom: var(--space-xs);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: hsl(var(--color-text));
+}
+
+.input-icon-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-icon-wrapper svg {
+    position: absolute;
+    left: var(--space-md);
+    color: hsl(var(--color-text-muted));
+    pointer-events: none;
+    z-index: 1;
+}
+
+.input-icon-wrapper input,
+.input-icon-wrapper select {
+    width: 100%;
+    padding: var(--space-md) var(--space-md) var(--space-md) calc(var(--space-md) * 2.5);
+    background: hsl(var(--input-bg));
+    border: 1px solid hsl(var(--color-border));
+    border-radius: var(--radius-md);
+    color: hsl(var(--color-text));
+    font-size: 0.9375rem;
+    transition: all var(--transition-fast);
+}
+
+.input-icon-wrapper input:focus,
+.input-icon-wrapper select:focus {
+    border-color: hsl(var(--color-primary));
+    box-shadow: 0 0 0 3px hsl(var(--color-primary) / 0.15);
+    outline: none;
+    background: hsl(var(--color-bg));
+}
+
+.input-icon-wrapper input:disabled {
+    background: hsl(var(--color-bg-tertiary));
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.select-arrow {
+    position: absolute;
+    right: var(--space-md);
+    color: hsl(var(--color-text-muted));
+    pointer-events: none;
+}
+
+/* Form Actions */
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-md);
+    padding-top: var(--space-xl);
+    border-top: 1px solid hsl(var(--color-border));
+}
+
+/* Error State */
+.form-error {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    background: hsl(var(--color-error) / 0.1);
+    border: 1px solid hsl(var(--color-error) / 0.2);
+    border-radius: var(--radius-md);
+    color: hsl(var(--color-error));
+    font-weight: 500;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .type-selector-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .form-card-container {
+        padding: var(--space-lg);
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+}

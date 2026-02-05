@@ -2,9 +2,13 @@
 WorkSynapse Middleware Package
 ==============================
 Security and request processing middleware.
+
+This module re-exports security functionality from the consolidated
+app.core.security module for backward compatibility.
 """
 
-from app.middleware.security import (
+# Import from consolidated security module
+from app.core.security import (
     # Token handling
     TokenData,
     create_access_token,
@@ -27,6 +31,8 @@ from app.middleware.security import (
     get_user_agent,
     # Rate limiting
     generate_rate_limit_key,
+    # Middleware setup
+    setup_security_middleware,
 )
 
 __all__ = [
@@ -52,4 +58,6 @@ __all__ = [
     "get_user_agent",
     # Rate limiting
     "generate_rate_limit_key",
+    # Middleware setup
+    "setup_security_middleware",
 ]

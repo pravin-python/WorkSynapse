@@ -7,6 +7,7 @@ Professional command-line interface for administrative operations.
 Commands:
 - init           : Initialize system (permissions + roles)
 - seed_permissions: Seed default system permissions
+- seed_roles     : Seed default system roles with permissions
 - manage_roles   : Manage roles and permissions
 - create_admin   : Create admin/superuser account
 - add_permission : Add permission to a role
@@ -37,6 +38,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 from commands.seed_permissions import SeedPermissionsCommand
+from commands.seed_roles import SeedRolesCommand
 from commands.manage_roles import ManageRolesCommand, AddPermissionCommand, RemovePermissionCommand
 from commands.create_admin import CreateAdminCommand
 try:
@@ -98,25 +100,50 @@ def init():
     
     This command runs:
     1. seed_permissions - Creates all default system permissions
-    2. manage_roles - Creates all default roles with proper permissions
+    2. seed_roles - Creates all default roles with proper permissions
     
     This is the recommended first command to run after deployment.
     """
     print_banner()
     console.print("[bold blue]Initializing WorkSynapse system...[/bold blue]\n")
     
+    async def _init_system():
+        """Run both seed commands within a single event loop and database session."""
+        from app.infrastructure.database import engine, AsyncSessionLocal
+        
+        try:
+            # Ensure clean slate before starting
+            await engine.dispose()
+
+            # Step 1: Seed permissions
+            console.print("[bold]Step 1/2: Seeding permissions...[/bold]")
+            perm_cmd = SeedPermissionsCommand()
+            await perm_cmd.run_async()
+            
+            # Reset pool to prevent event loop mismatch errors between commands
+            await engine.dispose()
+
+            # Step 2: Seed roles (same event loop, fresh session)
+            console.print("\n[bold]Step 2/2: Seeding roles...[/bold]")
+            roles_cmd = SeedRolesCommand()
+            await roles_cmd.run_async()
+            
+            console.print("\n[bold green]✅ System initialization complete![/bold green]")
+            console.print("[dim]You can now create admin users with 'python manage.py create_admin'[/dim]")
+            
+        finally:
+            # Properly dispose of connection pool at the end
+            await engine.dispose()
+    
+    # Windows-specific event loop policy
+    if sys.platform == 'win32':
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    
     try:
-        # Seed permissions first
-        console.print("[bold]Step 1/2: Seeding permissions...[/bold]")
-        SeedPermissionsCommand().run()
-        
-        # Then manage roles
-        console.print("\n[bold]Step 2/2: Setting up roles...[/bold]")
-        ManageRolesCommand().run()
-        
-        console.print("\n[bold green]✅ System initialization complete![/bold green]")
-        console.print("[dim]You can now create admin users with 'python manage.py create_admin'[/dim]")
-        
+        asyncio.run(_init_system())
+    except KeyboardInterrupt:
+        console.print("[yellow]⚠️  Command cancelled by user.[/yellow]")
+        raise typer.Exit(code=130)
     except Exception as e:
         console.print(f"[bold red]❌ Initialization failed: {e}[/bold red]")
         raise typer.Exit(code=1)
@@ -162,6 +189,29 @@ def manage_roles():
         cmd.run()
     except Exception as e:
         console.print(f"[bold red]❌ Failed to manage roles: {e}[/bold red]")
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def seed_roles():
+    """
+    👥 Seed default system roles with permissions.
+    
+    Creates default roles (SuperAdmin, Admin, Manager, TeamLead, Developer, 
+    Viewer, Guest) and assigns appropriate permissions based on role level.
+    
+    This command is idempotent - safe to run multiple times.
+    
+    Note: Run seed_permissions first to ensure all permissions exist.
+    """
+    print_banner()
+    console.print("[bold blue]Seeding system roles...[/bold blue]\n")
+    
+    try:
+        cmd = SeedRolesCommand()
+        cmd.run()
+    except Exception as e:
+        console.print(f"[bold red]❌ Failed to seed roles: {e}[/bold red]")
         raise typer.Exit(code=1)
 
 

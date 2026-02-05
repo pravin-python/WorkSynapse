@@ -203,7 +203,7 @@ class UserAIAgent(Base, AuditMixin):
     api_key: Mapped["LLMApiKey"] = relationship("LLMApiKey", back_populates="user_agents")
     sessions: Mapped[List["UserAgentSession"]] = relationship(
         "UserAgentSession",
-        back_populates="agent",
+        back_populates="user_agent",
         cascade="all, delete-orphan"
     )
     
@@ -241,7 +241,7 @@ class UserAgentSession(Base):
     tokens_used: Mapped[int] = mapped_column(Integer, default=0)
     
     # Relationships
-    agent: Mapped["UserAIAgent"] = relationship("UserAIAgent", back_populates="sessions")
+    user_agent: Mapped["UserAIAgent"] = relationship("UserAIAgent", back_populates="sessions")
     user: Mapped["User"] = relationship("User")
     
     def __repr__(self):

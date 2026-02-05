@@ -47,6 +47,13 @@ class UserStatus(str, enum.Enum):
     LOCKED = "LOCKED"
 
 
+class AccountType(str, enum.Enum):
+    """Account type for multi-tenant user system."""
+    SUPERUSER = "SUPERUSER"  # System owner with full access
+    STAFF = "STAFF"          # Internal team member
+    CLIENT = "CLIENT"        # External customer account
+
+
 class PermissionAction(str, enum.Enum):
     """Permission actions for RBAC."""
     CREATE = "CREATE"
@@ -79,6 +86,17 @@ role_permissions = Table(
     Base.metadata,
     Column("role_id", Integer, ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
     Column("permission_id", Integer, ForeignKey("permissions.id", ondelete="CASCADE"), primary_key=True),
+)
+
+# Many-to-many: Users (Clients) <-> Projects (for client access)
+user_project_assignments = Table(
+    "user_project_assignments",
+    Base.metadata,
+    Column("user_id", Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    Column("project_id", Integer, ForeignKey("projects.id", ondelete="CASCADE"), primary_key=True),
+    Column("assigned_at", DateTime(timezone=True), server_default="now()"),
+    Column("assigned_by_user_id", Integer, nullable=True),
+    Column("access_level", String(50), default="VIEW"),  # VIEW, EDIT, MANAGE
 )
 
 
@@ -140,6 +158,20 @@ class User(Base):
         default=UserRole.DEVELOPER
     )
     
+    # Multi-Account System Fields
+    account_type: Mapped[AccountType] = mapped_column(
+        Enum(AccountType),
+        default=AccountType.STAFF,
+        index=True
+    )
+    created_by_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True
+    )
+    company_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    company_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    department: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    
     # Security Tracking
     failed_login_attempts: Mapped[int] = mapped_column(Integer, default=0)
     locked_until: Mapped[Optional[datetime.datetime]] = mapped_column(
@@ -197,6 +229,20 @@ class User(Base):
         back_populates="user",
         foreign_keys="[UserAIAgent.user_id]",
         cascade="all, delete-orphan"
+    )
+    
+    # Multi-Account relationships
+    created_by = relationship(
+        "User",
+        remote_side="User.id",
+        foreign_keys="[User.created_by_id]",
+        backref="created_accounts"
+    )
+    # Client users can be assigned to specific projects
+    assigned_projects = relationship(
+        "Project",
+        secondary="user_project_assignments",
+        back_populates="assigned_users"
     )
     
     # Constraints

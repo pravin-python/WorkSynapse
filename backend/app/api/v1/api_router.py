@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.routers import users, auth, projects, tasks, chat, agents, webhooks, notes, worklogs, files, llm_keys, user_activity
+from app.api.v1.routers import users, auth, projects, tasks, chat, agents, webhooks, notes, worklogs, files, llm_keys, user_activity, accounts, roles
 from app.api.v1.endpoints import websockets
 
 api_router = APIRouter()
@@ -9,6 +9,8 @@ api_router.include_router(auth.router, prefix="/auth", tags=["authentication"])
 
 # User routes
 api_router.include_router(users.router, prefix="/users", tags=["users"])
+api_router.include_router(accounts.router, prefix="/accounts", tags=["accounts"])
+api_router.include_router(roles.router, prefix="/roles", tags=["roles"])
 api_router.include_router(user_activity.router, prefix="/user/activity", tags=["user-activity"])
 
 # Project routes

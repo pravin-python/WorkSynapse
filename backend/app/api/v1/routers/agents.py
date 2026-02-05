@@ -16,7 +16,6 @@ import json
 
 from app.database.session import get_db
 from app.agents.orchestrator.models import (
-    Agent,
     AgentCreate,
     AgentUpdate,
     AgentResponse,

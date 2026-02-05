@@ -1,0 +1,379 @@
+/* Sidebar Container */
+.sidebar-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    background: hsl(var(--sidebar-bg));
+    border-right: 1px solid hsl(var(--color-border));
+    z-index: var(--z-sticky);
+    display: flex;
+    flex-direction: column;
+    transition: width var(--transition-spring);
+    width: 240px;
+    /* Expanded Width */
+    overflow: hidden;
+    /* Prevent horizontal scroll during transition */
+}
+
+/* Collapsed State */
+.sidebar-container.collapsed {
+    width: 72px;
+}
+
+/* Header Area */
+.sidebar-header {
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* Space between Logo and Toggle */
+    padding: 0 var(--space-md);
+    border-bottom: 1px solid hsl(var(--color-border));
+    white-space: nowrap;
+}
+
+/* Logo */
+.logo-area {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    text-decoration: none;
+    color: hsl(var(--color-text));
+    transition: all var(--transition-base);
+}
+
+.logo-icon {
+    min-width: 32px;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, hsl(var(--color-primary)), hsl(var(--color-secondary)));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.logo-text {
+    font-size: 1.1rem;
+    font-weight: 700;
+    opacity: 1;
+    transition: opacity 0.2s, width 0.2s;
+}
+
+.logo-text.hidden {
+    opacity: 0;
+    width: 0;
+    display: none;
+}
+
+/* Toggle Button */
+.sidebar-toggle-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    border: none;
+    background: transparent;
+    color: hsl(var(--color-text-muted));
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.sidebar-toggle-btn:hover {
+    background: hsl(var(--color-surface-hover));
+    color: hsl(var(--color-primary));
+}
+
+/* Collapsed Header Logic */
+.sidebar-container.collapsed .sidebar-header {
+    justify-content: center;
+    /* Center content when collapsed */
+    padding: 0;
+}
+
+.sidebar-container.collapsed .logo-area {
+    margin-right: 0;
+}
+
+.sidebar-container.collapsed .sidebar-toggle-btn {
+    display: none;
+    /* Hide toggle in header when collapsed? Or maybe move it? */
+    /* Wait, the requirement says "Toggle animates sidebar width". If I hide it, user can't expand. */
+    /* Let's rethink. If collapsed, we need the toggle visible. */
+    /* The prompt says: "In collapsed mode: Show compact logo icon... Center it in header" */
+    /* AND "Collapse / Expand Control: Use single toggle icon". */
+    /* If the logo is centered, where does the toggle go? */
+    /* Maybe the logo IS the toggle? No, "Keep it clickable -> go to Dashboard". */
+    /* Maybe the toggle is moved? */
+    /* Or maybe valid to have Logo (top) and Toggle (bottom)? No "in header". */
+    /* Let's keep both, but tighter. */
+}
+
+/* Correction for Collapsed Header */
+.sidebar-container.collapsed .sidebar-header {
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    padding-top: 12px;
+    height: auto;
+    /* Allow growth if needed, or keeping it fixed */
+    height: 80px;
+    /* Slightly taller to fit both if stacked? Or just overlay? */
+    /* Actually with 72px width, we can fit Logo. Where is the toggle? */
+    /* Common pattern: Logo at top, Toggle next to it is impossible if centered. */
+    /* Alternative: Logo is hidden, Toggle becomes the main thing? No "Logo behavior fix: Show compact logo". */
+    /* Let's Try: Logo Centered. Toggle is... overlayed? Or maybe below? */
+    /* Or maybe standard layout: [Logo] [Toggle]. When collapsed: [Logo] ... where is toggle? */
+    /* Usually toggle moves to bottom or stays at top. */
+    /* Let's make the logo centered and the toggle disappear? No, need to expand. */
+    /* Re-read: "Toggle animates sidebar width... Must not overlap logo... Must be clearly visible" */
+    /* Let's put the toggle below the logo in collapsed state? Or maybe keep standard flex row but tight? */
+}
+
+/* REVISED Sidebar Header for Collapsed */
+.sidebar-header {
+    /* Resetting */
+    height: 64px;
+    padding: 0 16px;
+    flex-direction: row;
+}
+
+.sidebar-container.collapsed .sidebar-header {
+    padding: 0;
+    justify-content: center;
+    position: relative;
+}
+
+
+
+.sidebar-container.collapsed .sidebar-toggle-btn {
+    /* To not overlap, maybe place it differently or just hide it if we click logo to expand? No, logo goes to dashboard. */
+    /* Let's assume the toggle should be visible. */
+    /* If I make the header `justify-content: center`, the items stack or squish. */
+    /* Let's absolute position the toggle in collapsed mode? */
+    position: absolute;
+    bottom: -40px;
+    /* Move it out of header? No. */
+    /* How about: In collapsed mode, the header is just the logo. The toggle is... elsewhere? */
+    /* Prompt: "Toggle icon in header". */
+    /* Ok, [Logo Icon] [Toggle] works in 240px. */
+    /* In 72px, [Logo][Toggle] is too tight (32+32+gap > 72?) 32+32=64. It fits with 4px gap. */
+    /* Let's try centering them vertically? */
+    /* No, let's keep them side by side but tight. */
+}
+
+/* Let's try: Expanded [Logo Text      Toggle] */
+/* Collapsed [Logo] (Toggle hidden? or Toggle overlay?) */
+/* Actually, many sidebars hide the toggle in collapsed mode and use a trigger elsewhere, OR the toggle moves to the bottom. */
+/* OR, the toggle replaces the logo? No. */
+/* Let's try this: Collapsed -> Logo is displayed. Toggle is displayed BELOW it? */
+/* Or, Toggle is the only thing shown? No. */
+/* Let's try: [Logo] is visible. Hovering sidebar shows toggle? */
+/* Let's go with: Header contains Logo. Toggle is absolute positioned in the header? */
+/* Let's try simply: Flex Layout. */
+/* Expanded: `justify-between`. Logo Left, Toggle Right. */
+/* Collapsed: `flex-direction: column`. Logo Top, Toggle Bottom. (Inside 64px might be tight) */
+/* Let's increase header height? No "Header 64px". */
+/* Let's make toggle `position: absolute` top right? */
+/* If collapsed, Toggle could be centered below logo. */
+
+/* Let's try: Toggle is rendered, but in collapsed mode, display only Logo? Then how to expand? */
+/* Maybe click non-link area? No. */
+/* Let's look at the toggle implementation again. */
+/* <button onClick={toggle}><PanelLeft/></button> */
+/* Maybe we can put the toggle inside the content area for collapsed state? */
+/* Let's stick to: Toggle is part of header. */
+/* Expanded: [Logo...         ][T] */
+/* Collapsed: [Logo] (Toggle is overlayed or small?) */
+/* Let's try: Collapsed header has Logo centered. */
+/* We can add a "Expand" button appearing on hover? */
+/* Decision: I will hide the toggle text/icon in standard layout, and perhaps show it on hover or verify if it fits. */
+/* Actually, 72px is wide. 32px logo. 4px gap. 20px toggle. 32+4+20 = 56px. It fits! */
+/* So I will just center them. */
+
+.sidebar-container.collapsed .sidebar-header {
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    height: auto;
+    padding: 12px 0;
+}
+
+.sidebar-container.collapsed .logo-area {
+    margin: 0;
+}
+
+.nav-section {
+    margin-bottom: var(--space-md);
+}
+
+/* Nav Section Headers */
+.nav-section-header {
+    padding: var(--space-xs) var(--space-sm);
+    margin-bottom: var(--space-xs);
+    display: flex;
+    align-items: center;
+    height: 24px;
+    opacity: 1;
+    transition: opacity 0.2s;
+}
+
+.sidebar-container.collapsed .nav-section-header {
+    display: none;
+    /* Hide section titles */
+}
+
+/* Navigation Items */
+.sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: var(--space-md) var(--space-sm);
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-sm);
+    /* Reduced padding for cleanliness */
+    border-radius: var(--radius-md);
+    color: hsl(var(--color-text-secondary));
+    text-decoration: none;
+    transition: all var(--transition-fast);
+    min-height: 44px;
+    position: relative;
+    white-space: nowrap;
+}
+
+.sidebar-container.collapsed .nav-item {
+    justify-content: center;
+    padding: var(--space-sm) 0;
+}
+
+.nav-icon {
+    min-width: 20px;
+    flex-shrink: 0;
+}
+
+.nav-label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: opacity 0.2s;
+    opacity: 1;
+}
+
+.sidebar-container.collapsed .nav-label {
+    opacity: 0;
+    width: 0;
+    display: none;
+}
+
+.nav-item:hover {
+    background: hsl(var(--color-surface-hover));
+    color: hsl(var(--color-text));
+}
+
+.nav-item.active {
+    background: hsl(var(--color-primary) / 0.1);
+    color: hsl(var(--color-primary));
+}
+
+/* Tooltips */
+.nav-tooltip {
+    position: absolute;
+    left: 60px;
+    /* Fixed offset */
+    top: 50%;
+    transform: translateY(-50%) translateX(10px);
+    background: hsl(var(--color-text));
+    color: hsl(var(--color-bg));
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    pointer-events: none;
+    opacity: 0;
+    transition: all 0.2s;
+    z-index: 100;
+    white-space: nowrap;
+    box-shadow: var(--shadow-md);
+}
+
+.sidebar-container.collapsed .nav-item:hover .nav-tooltip {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+}
+
+/* Footer */
+.sidebar-footer {
+    padding: var(--space-md);
+    border-top: 1px solid hsl(var(--color-border));
+}
+
+.sidebar-container.collapsed .sidebar-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Mobile Responsive */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: hsl(var(--modal-backdrop));
+    z-index: calc(var(--z-sticky) - 1);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.sidebar-overlay.open {
+    opacity: 1;
+    display: block;
+}
+
+@media (max-width: 1024px) {
+    .sidebar-container {
+        width: 280px !important;
+        /* Force width on mobile */
+        transform: translateX(-100%);
+    }
+
+    .sidebar-container.mobile-open {
+        transform: translateX(0);
+        box-shadow: var(--shadow-xl);
+    }
+
+    .sidebar-toggle-btn.hide-mobile {
+        display: none;
+    }
+
+    .nav-label {
+        display: block !important;
+        width: auto !important;
+        opacity: 1 !important;
+    }
+
+    .nav-section-header {
+        display: flex !important;
+    }
+
+    .sidebar-overlay {
+        display: block;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .sidebar-overlay.open {
+        opacity: 1;
+        pointer-events: auto;
+    }
+}

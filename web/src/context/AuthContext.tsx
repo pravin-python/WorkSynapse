@@ -86,22 +86,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
             const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
             const storedUser = localStorage.getItem(USER_KEY);
 
-            if (storedAccessToken && storedUser) {
-                try {
-                    const user = JSON.parse(storedUser) as User;
-                    setAuthToken(storedAccessToken);
+            if (storedAccessToken) {
+                // Set token immediately to allow request to proceed
+                setAuthToken(storedAccessToken);
 
-                    // Verify token is still valid by fetching user profile
+                try {
+                    // Always verifying token by fetching latest user data
+                    // This ensures roles/permissions are up to date
                     const response = await apiClient.get('/users/me');
+                    const user = response.data;
+
+                    // Update cache
+                    localStorage.setItem(USER_KEY, JSON.stringify(user));
 
                     setState({
-                        user: response.data,
+                        user: user,
                         accessToken: storedAccessToken,
                         refreshToken: storedRefreshToken,
                         isAuthenticated: true,
                         isLoading: false,
                     });
                 } catch (error) {
+                    console.error("Auth initialization failed:", error);
                     // Token expired or invalid, try refresh
                     if (storedRefreshToken) {
                         try {
@@ -110,7 +116,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
                                 return; // State updated by refreshTokenRequest
                             }
                         } catch {
-                            // Refresh failed, clear everything
+                            // Refresh failed
                         }
                     }
 
@@ -253,14 +259,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const hasPermission = useCallback((permission: string): boolean => {
         if (!state.user) return false;
         if (state.user.is_superuser) return true;
-        return state.user.permissions.includes(permission);
+        return state.user.permissions?.includes(permission) ?? false;
     }, [state.user]);
 
     // Check role
     const hasRole = useCallback((role: string): boolean => {
         if (!state.user) return false;
         if (state.user.is_superuser) return true;
-        return state.user.roles.includes(role) || state.user.role === role;
+        return (state.user.roles?.includes(role) ?? false) || state.user.role === role;
     }, [state.user]);
 
     // Check admin

@@ -6,7 +6,7 @@ Database models and Pydantic schemas for the Agent Orchestrator.
 """
 
 from app.agents.orchestrator.models.agent_model import (
-    Agent,
+    OrchestratorAgent,
     AgentConversation,
     AgentExecution,
 )
@@ -27,7 +27,7 @@ from app.agents.orchestrator.models.schemas import (
 
 __all__ = [
     # SQLAlchemy models
-    "Agent",
+    "OrchestratorAgent",
     "AgentConversation",
     "AgentExecution",
     # Pydantic schemas

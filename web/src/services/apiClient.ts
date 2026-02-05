@@ -7,9 +7,10 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import CryptoJS from 'crypto-js';
+import { loaderService } from '../components/ui/loader/loaderService';
 
 // API Configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 const API_KEY = import.meta.env.VITE_API_KEY || '';
 const SECRET_KEY = import.meta.env.VITE_SECRET_KEY || '';
 
@@ -57,6 +58,19 @@ function generateSignature(
 // Request interceptor
 apiClient.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
+        // Add auth token from storage if not already set
+        if (!config.headers['Authorization']) {
+            const token = localStorage.getItem('worksynapse-access-token') || authToken;
+            if (token) {
+                config.headers['Authorization'] = `Bearer ${token}`;
+            }
+        }
+
+        // Show loader for all requests unless explicitly disabled
+        if (!config.params?._noLoader) {
+            loaderService.show();
+        }
+
         // Add timestamp header
         const timestamp = Math.floor(Date.now() / 1000).toString();
         config.headers['X-TIMESTAMP'] = timestamp;
@@ -89,9 +103,11 @@ apiClient.interceptors.request.use(
 // Response interceptor
 apiClient.interceptors.response.use(
     (response) => {
+        loaderService.hide();
         return response;
     },
     async (error: AxiosError) => {
+        loaderService.hide();
         const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
         // Handle 401 Unauthorized - try to refresh token

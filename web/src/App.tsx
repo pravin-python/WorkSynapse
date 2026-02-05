@@ -6,6 +6,8 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
+import { LoaderProvider } from './components/ui/loader/LoaderContext';
+import { GlobalLoader } from './components/ui/loader/GlobalLoader';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/layout/Layout';
 
@@ -27,8 +29,14 @@ const SettingsPage = lazy(() => import('./pages/settings/SettingsPage'));
 const ActivityDashboardPage = lazy(() => import('./pages/activity/ActivityDashboardPage'));
 
 // Admin pages
-const AdminUsersPage = lazy(() => import('./pages/admin/UsersPage'));
-const AdminRolesPage = lazy(() => import('./pages/admin/RolesPage'));
+const AdminUsersPage = lazy(() => import('./features/accounts/pages/AccountListPage').then(module => ({ default: module.AccountListPage })));
+const AccountCreatePage = lazy(() => import('./features/accounts/pages/AccountCreatePage').then(module => ({ default: module.AccountCreatePage })));
+const AccountEditPage = lazy(() => import('./features/accounts/pages/AccountEditPage').then(module => ({ default: module.AccountEditPage })));
+
+// Role Management Pages
+const AdminRolesPage = lazy(() => import('./features/roles/pages/RoleListPage').then(module => ({ default: module.RoleListPage })));
+const RoleCreatePage = lazy(() => import('./features/roles/pages/RoleCreatePage').then(module => ({ default: module.RoleCreatePage })));
+const RoleEditPage = lazy(() => import('./features/roles/pages/RoleEditPage').then(module => ({ default: module.RoleEditPage })));
 
 // AI pages
 const AIAgentsPage = lazy(() => import('./pages/ai/AgentsPage'));
@@ -161,7 +169,11 @@ function AppRoutes() {
             {/* Admin Routes */}
             <Route element={<ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}><ProtectedLayout /></ProtectedRoute>}>
                 <Route path="/admin/users" element={<AdminUsersPage />} />
+                <Route path="/accounts/new" element={<AccountCreatePage />} />
+                <Route path="/accounts/:id/edit" element={<AccountEditPage />} />
                 <Route path="/admin/roles" element={<AdminRolesPage />} />
+                <Route path="/admin/roles/new" element={<RoleCreatePage />} />
+                <Route path="/admin/roles/:id/edit" element={<RoleEditPage />} />
             </Route>
 
             {/* AI Routes */}
@@ -201,11 +213,14 @@ function AppRoutes() {
 function App() {
     return (
         <ThemeProvider defaultTheme="bento">
-            <AuthProvider>
-                <BrowserRouter>
-                    <AppRoutes />
-                </BrowserRouter>
-            </AuthProvider>
+            <LoaderProvider>
+                <GlobalLoader />
+                <AuthProvider>
+                    <BrowserRouter>
+                        <AppRoutes />
+                    </BrowserRouter>
+                </AuthProvider>
+            </LoaderProvider>
         </ThemeProvider>
     );
 }

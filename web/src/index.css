@@ -6,6 +6,7 @@
 
 /* Import Theme System (this contains all 6 themes) */
 @import './styles/themes.css';
+@import './styles/forms.css';
 
 /* =============================================================================
    GLOBAL STYLES OVERRIDES

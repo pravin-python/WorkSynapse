@@ -386,8 +386,13 @@ LOG_LEVEL=INFO
 1. **Generate Alembic Migration**
 
    ```bash
+   python manage.py init
    alembic revision --autogenerate -m "Initial enterprise schema"
    alembic upgrade head
+   python manage.py create-admin
+
+   python manage.py create-admin -e admin2@example.com -u admin2 -p Admin@123 --superuser
+   uvicorn app.main:app --port 8000 --reload
    ```
 
 2. **Create API Routers**

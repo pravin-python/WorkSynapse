@@ -1,0 +1,104 @@
+.filter-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+    width: 100%;
+}
+
+.filter-bar-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    flex: 1;
+    flex-wrap: wrap;
+}
+
+
+/* Search Group - REMOVED (Replaced by SearchInput component) */
+
+/* Filter Dropdowns */
+
+/* Filter Dropdowns */
+.filter-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.filter-select {
+    height: 40px;
+    padding: 0 32px 0 12px;
+    background: hsl(var(--color-surface));
+    border: 1px solid hsl(var(--color-border));
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    color: hsl(var(--color-text));
+    cursor: pointer;
+    appearance: none;
+    min-width: 160px;
+    transition: all var(--transition-fast);
+}
+
+.filter-select:hover {
+    background: hsl(var(--color-surface-hover));
+    border-color: hsl(var(--color-border-hover));
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: hsl(var(--color-primary));
+}
+
+.filter-icon-indicator {
+    position: absolute;
+    right: 12px;
+    color: hsl(var(--color-text-muted));
+    pointer-events: none;
+}
+
+/* Reset Button */
+.filter-reset-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    height: 40px;
+    background: transparent;
+    border: 1px dashed hsl(var(--color-border));
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: hsl(var(--color-text-muted));
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.filter-reset-btn:hover {
+    color: hsl(var(--color-error));
+    border-color: hsl(var(--color-error));
+    background: hsl(var(--color-error) / 0.05);
+}
+
+@media (max-width: 768px) {
+    .filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-bar-left {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .search-filter-group,
+    .filter-select {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .filter-reset-btn {
+        justify-content: center;
+    }
+}

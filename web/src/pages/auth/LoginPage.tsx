@@ -6,7 +6,6 @@
 import React, { useState, FormEvent } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useTheme } from '../../context/ThemeContext';
 import { validateForm, loginSchema } from '../../utils/validation';
 import { Mail, Lock, Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
 import ThemeSwitcher from '../../components/ui/ThemeSwitcher';
@@ -15,8 +14,7 @@ import './Auth.css';
 export function LoginPage() {
     const navigate = useNavigate();
     const location = useLocation();
-    const { login, isLoading } = useAuth();
-    const { theme } = useTheme();
+    const { login } = useAuth();
 
     const [formData, setFormData] = useState({
         email: '',
@@ -120,10 +118,7 @@ export function LoginPage() {
                         </div>
 
                         <div className="form-group">
-                            <div className="form-label-row">
-                                <label htmlFor="password" className="form-label">Password</label>
-                                <Link to="/forgot-password" className="form-link">Forgot password?</Link>
-                            </div>
+                            <label htmlFor="password" className="form-label">Password</label>
                             <div className={`input-wrapper ${errors.password ? 'error' : ''}`}>
                                 <Lock size={18} />
                                 <input
@@ -145,6 +140,9 @@ export function LoginPage() {
                                 >
                                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                 </button>
+                            </div>
+                            <div className="password-footer">
+                                <Link to="/forgot-password" className="form-link">Forgot password?</Link>
                             </div>
                             {errors.password && (
                                 <span id="password-error" className="field-error">{errors.password}</span>
@@ -180,12 +178,6 @@ export function LoginPage() {
                         </button>
                     </form>
 
-                    <div className="auth-footer">
-                        <p>
-                            Don't have an account?{' '}
-                            <Link to="/register" className="form-link">Sign up</Link>
-                        </p>
-                    </div>
 
                     <div className="auth-theme">
                         <ThemeSwitcher variant="compact" />

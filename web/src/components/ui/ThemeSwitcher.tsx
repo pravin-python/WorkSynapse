@@ -20,13 +20,13 @@ export function ThemeSwitcher({ variant = 'compact' }: ThemeSwitcherProps) {
         return (
             <div className="theme-switcher-compact">
                 {/* Dark/Light Toggle */}
-                <button
+                {/* <button
                     className="theme-toggle-btn"
                     onClick={toggleDarkMode}
                     title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
                 >
                     {isDark ? <Sun size={18} /> : <Moon size={18} />}
-                </button>
+                </button> */}
 
                 {/* Theme Palette */}
                 <div className="theme-dots">

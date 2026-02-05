@@ -18,7 +18,7 @@
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
   --font-display: 'Outfit', 'Inter', sans-serif;
-  
+
   /* Spacing Scale */
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
@@ -27,7 +27,7 @@
   --space-xl: 2rem;
   --space-2xl: 3rem;
   --space-3xl: 4rem;
-  
+
   /* Border Radius */
   --radius-sm: 4px;
   --radius-md: 8px;
@@ -35,19 +35,19 @@
   --radius-xl: 16px;
   --radius-2xl: 24px;
   --radius-full: 9999px;
-  
+
   /* Shadows - will be overridden per theme */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
   --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
-  
+
   /* Transitions */
   --transition-fast: 150ms ease;
   --transition-base: 250ms ease;
   --transition-slow: 350ms ease;
   --transition-spring: 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
-  
+
   /* Z-Index Scale */
   --z-base: 0;
   --z-dropdown: 100;
@@ -61,22 +61,22 @@
 /* =============================================================================
    THEME 1: MINIMALIST (Default - Clean + White)
 ============================================================================= */
-[data-theme="minimalist"], 
+[data-theme="minimalist"],
 :root {
   /* Primary Colors */
   --color-primary: 220 90% 56%;
   --color-primary-hover: 220 90% 50%;
   --color-primary-light: 220 90% 96%;
   --color-primary-dark: 220 90% 40%;
-  
+
   /* Secondary */
   --color-secondary: 260 80% 60%;
   --color-secondary-hover: 260 80% 55%;
-  
+
   /* Accent */
   --color-accent: 175 80% 45%;
   --color-accent-hover: 175 80% 40%;
-  
+
   /* Backgrounds */
   --color-bg: 0 0% 100%;
   --color-bg-secondary: 220 20% 97%;
@@ -84,29 +84,29 @@
   --color-surface: 0 0% 100%;
   --color-surface-hover: 220 20% 97%;
   --color-surface-active: 220 30% 95%;
-  
+
   /* Text */
   --color-text: 220 20% 15%;
   --color-text-secondary: 220 15% 35%;
   --color-text-muted: 220 10% 55%;
   --color-text-inverse: 0 0% 100%;
-  
+
   /* Borders */
   --color-border: 220 15% 90%;
   --color-border-hover: 220 15% 80%;
-  
+
   /* Status Colors */
   --color-success: 145 65% 45%;
   --color-warning: 40 95% 55%;
   --color-error: 0 75% 55%;
   --color-info: 200 85% 50%;
-  
+
   /* Specifics */
   --sidebar-bg: 0 0% 100%;
   --card-bg: 0 0% 100%;
   --input-bg: 220 20% 97%;
   --modal-backdrop: 220 20% 15% / 0.5;
-  
+
   /* Theme-specific */
   --glass-bg: 0 0% 100% / 0.8;
   --glass-border: 220 15% 90%;
@@ -123,15 +123,15 @@
   --color-primary-hover: 265 100% 60%;
   --color-primary-light: 265 100% 25%;
   --color-primary-dark: 265 100% 75%;
-  
+
   /* Secondary */
   --color-secondary: 200 100% 60%;
   --color-secondary-hover: 200 100% 55%;
-  
+
   /* Accent */
   --color-accent: 45 100% 55%;
   --color-accent-hover: 45 100% 50%;
-  
+
   /* Backgrounds - Deep Dark */
   --color-bg: 240 15% 8%;
   --color-bg-secondary: 240 15% 11%;
@@ -139,36 +139,36 @@
   --color-surface: 240 15% 12%;
   --color-surface-hover: 240 15% 15%;
   --color-surface-active: 240 15% 18%;
-  
+
   /* Text */
   --color-text: 0 0% 98%;
   --color-text-secondary: 240 10% 75%;
   --color-text-muted: 240 10% 55%;
   --color-text-inverse: 240 15% 8%;
-  
+
   /* Borders */
   --color-border: 240 15% 20%;
   --color-border-hover: 240 15% 30%;
-  
+
   /* Status Colors */
   --color-success: 155 75% 50%;
   --color-warning: 45 100% 55%;
   --color-error: 0 85% 60%;
   --color-info: 200 100% 60%;
-  
+
   /* Specifics */
   --sidebar-bg: 240 15% 6%;
   --card-bg: 240 15% 12%;
   --input-bg: 240 15% 15%;
   --modal-backdrop: 0 0% 0% / 0.7;
-  
+
   /* Bento-specific */
   --glass-bg: 240 15% 12% / 0.9;
   --glass-border: 240 15% 25%;
   --glow-color: 265 100% 65% / 0.2;
   --bento-gap: 1rem;
   --bento-radius: 20px;
-  
+
   /* Enhanced Shadows for Bento */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 8px 16px rgba(0, 0, 0, 0.4);
@@ -178,7 +178,7 @@
 
 
 /* =============================================================================
-   THEME 3: RETRO (80s Nostalgia)
+   THEME 3: RETRO (80s Nostalgia) - FIXED
 ============================================================================= */
 [data-theme="retro"] {
   /* Primary Colors - Hot Pink & Cyan */
@@ -186,15 +186,15 @@
   --color-primary-hover: 330 100% 55%;
   --color-primary-light: 330 100% 85%;
   --color-primary-dark: 330 100% 45%;
-  
+
   /* Secondary - Electric Blue */
   --color-secondary: 190 100% 50%;
   --color-secondary-hover: 190 100% 45%;
-  
+
   /* Accent - Laser Yellow */
   --color-accent: 55 100% 55%;
   --color-accent-hover: 55 100% 50%;
-  
+
   /* Backgrounds - Sepia Warm */
   --color-bg: 40 30% 92%;
   --color-bg-secondary: 40 25% 88%;
@@ -202,99 +202,106 @@
   --color-surface: 40 25% 90%;
   --color-surface-hover: 40 20% 86%;
   --color-surface-active: 40 15% 82%;
-  
-  /* Text */
-  --color-text: 40 40% 15%;
-  --color-text-secondary: 40 30% 30%;
-  --color-text-muted: 40 20% 45%;
-  --color-text-inverse: 40 30% 92%;
-  
-  /* Borders */
-  --color-border: 40 20% 80%;
-  --color-border-hover: 40 20% 70%;
-  
+
+  /* Text - Darker for Contrast */
+  --color-text: 40 40% 10%;
+  /* Darker brown */
+  --color-text-secondary: 40 30% 25%;
+  --color-text-muted: 40 20% 40%;
+  --color-text-inverse: 40 30% 95%;
+
+  /* Borders - Thicker & Visible */
+  --color-border: 40 20% 70%;
+  --color-border-hover: 40 20% 60%;
+
   /* Status Colors */
-  --color-success: 120 70% 40%;
-  --color-warning: 35 95% 50%;
-  --color-error: 0 80% 50%;
-  --color-info: 210 80% 50%;
-  
+  --color-success: 120 70% 35%;
+  --color-warning: 35 100% 45%;
+  --color-error: 0 80% 45%;
+  --color-info: 210 80% 45%;
+
   /* Specifics */
   --sidebar-bg: 40 25% 88%;
   --card-bg: 40 30% 92%;
   --input-bg: 40 20% 96%;
-  --modal-backdrop: 40 40% 15% / 0.6;
-  
+  --modal-backdrop: 40 40% 10% / 0.7;
+
   /* Retro-specific */
   --glass-bg: 40 30% 92% / 0.95;
-  --glass-border: 40 20% 75%;
+  --glass-border: 40 20% 70%;
   --glow-color: 330 100% 60% / 0.3;
-  
+
   /* Retro Fonts */
   --font-display: 'Press Start 2P', 'Courier New', monospace;
-  
+
   /* Pixel-perfect borders */
   --radius-sm: 0;
   --radius-md: 0;
   --radius-lg: 4px;
   --radius-xl: 4px;
   --radius-2xl: 8px;
+
+  /* Retro Shadows - Softened & Colorful */
+  --shadow-sm: 2px 2px 0 rgba(70, 60, 50, 0.2);
+  --shadow-md: 4px 4px 0 rgba(70, 60, 50, 0.2);
+  --shadow-lg: 6px 6px 0 rgba(70, 60, 50, 0.2);
+  --shadow-xl: 8px 8px 0 rgba(70, 60, 50, 0.2);
 }
 
 
 /* =============================================================================
-   THEME 4: BRUTALIST (Bold/Sharp)
+   THEME 4: BRUTALIST (Bold/Sharp) - FIXED
 ============================================================================= */
 [data-theme="brutalist"] {
   /* Primary Colors - Pure Black/White contrast */
   --color-primary: 0 0% 0%;
-  --color-primary-hover: 0 0% 20%;
+  --color-primary-hover: 0 0% 15%;
   --color-primary-light: 0 0% 95%;
-  --color-primary-dark: 0 0% 10%;
-  
+  --color-primary-dark: 0 0% 5%;
+
   /* Secondary - Accent Red */
   --color-secondary: 0 100% 50%;
   --color-secondary-hover: 0 100% 45%;
-  
+
   /* Accent - Yellow */
   --color-accent: 55 100% 50%;
   --color-accent-hover: 55 100% 45%;
-  
+
   /* Backgrounds - Pure White */
   --color-bg: 0 0% 100%;
-  --color-bg-secondary: 0 0% 97%;
-  --color-bg-tertiary: 0 0% 94%;
+  --color-bg-secondary: 0 0% 98%;
+  --color-bg-tertiary: 0 0% 96%;
   --color-surface: 0 0% 100%;
   --color-surface-hover: 0 0% 96%;
   --color-surface-active: 0 0% 92%;
-  
+
   /* Text - Pure Black */
   --color-text: 0 0% 0%;
-  --color-text-secondary: 0 0% 25%;
-  --color-text-muted: 0 0% 45%;
+  --color-text-secondary: 0 0% 20%;
+  --color-text-muted: 0 0% 40%;
   --color-text-inverse: 0 0% 100%;
-  
+
   /* Borders - Thick Black */
   --color-border: 0 0% 0%;
   --color-border-hover: 0 0% 30%;
-  
-  /* Status Colors */
-  --color-success: 120 100% 35%;
-  --color-warning: 45 100% 50%;
-  --color-error: 0 100% 50%;
-  --color-info: 210 100% 50%;
-  
+
+  /* Status Colors (High Contrast) */
+  --color-success: 120 100% 25%;
+  --color-warning: 45 100% 45%;
+  --color-error: 0 100% 45%;
+  --color-info: 210 100% 45%;
+
   /* Specifics */
-  --sidebar-bg: 0 0% 0%;
+  --sidebar-bg: 0 0% 100%;
   --card-bg: 0 0% 100%;
-  --input-bg: 0 0% 97%;
+  --input-bg: 0 0% 100%;
   --modal-backdrop: 0 0% 0% / 0.8;
-  
+
   /* Brutalist-specific */
   --glass-bg: 0 0% 100%;
   --glass-border: 0 0% 0%;
   --glow-color: transparent;
-  
+
   /* Sharp edges, no rounded corners */
   --radius-sm: 0;
   --radius-md: 0;
@@ -302,13 +309,13 @@
   --radius-xl: 0;
   --radius-2xl: 0;
   --radius-full: 0;
-  
-  /* Heavy shadows */
-  --shadow-sm: 4px 4px 0 0 hsl(0 0% 0%);
-  --shadow-md: 6px 6px 0 0 hsl(0 0% 0%);
-  --shadow-lg: 8px 8px 0 0 hsl(0 0% 0%);
-  --shadow-xl: 12px 12px 0 0 hsl(0 0% 0%);
-  
+
+  /* Heavy hard shadows */
+  --shadow-sm: 2px 2px 0 0 hsl(0 0% 0%);
+  --shadow-md: 4px 4px 0 0 hsl(0 0% 0%);
+  --shadow-lg: 6px 6px 0 0 hsl(0 0% 0%);
+  --shadow-xl: 10px 10px 0 0 hsl(0 0% 0%);
+
   /* Bold typography */
   --font-display: 'Anton', 'Impact', sans-serif;
 }
@@ -323,15 +330,15 @@
   --color-primary-hover: 260 60% 65%;
   --color-primary-light: 260 60% 92%;
   --color-primary-dark: 260 60% 55%;
-  
+
   /* Secondary - Soft Rose */
   --color-secondary: 340 60% 70%;
   --color-secondary-hover: 340 60% 65%;
-  
+
   /* Accent - Soft Mint */
   --color-accent: 160 50% 65%;
   --color-accent-hover: 160 50% 60%;
-  
+
   /* Backgrounds - Cream */
   --color-bg: 45 40% 97%;
   --color-bg-secondary: 45 35% 94%;
@@ -339,40 +346,40 @@
   --color-surface: 45 40% 98%;
   --color-surface-hover: 45 35% 95%;
   --color-surface-active: 45 30% 92%;
-  
+
   /* Text - Soft charcoal */
   --color-text: 260 20% 25%;
   --color-text-secondary: 260 15% 40%;
   --color-text-muted: 260 10% 55%;
   --color-text-inverse: 45 40% 97%;
-  
+
   /* Borders - Soft */
   --color-border: 260 20% 88%;
   --color-border-hover: 260 20% 80%;
-  
+
   /* Status Colors - Muted */
   --color-success: 160 50% 50%;
   --color-warning: 35 70% 60%;
   --color-error: 0 60% 60%;
   --color-info: 200 60% 60%;
-  
+
   /* Specifics */
   --sidebar-bg: 260 30% 95%;
   --card-bg: 45 40% 98%;
   --input-bg: 45 30% 96%;
   --modal-backdrop: 260 20% 25% / 0.4;
-  
+
   /* Pastel-specific */
   --glass-bg: 45 40% 98% / 0.9;
   --glass-border: 260 20% 88%;
   --glow-color: 260 60% 70% / 0.2;
-  
+
   /* Soft shadows */
   --shadow-sm: 0 2px 8px rgba(180, 150, 200, 0.1);
   --shadow-md: 0 4px 16px rgba(180, 150, 200, 0.15);
   --shadow-lg: 0 8px 24px rgba(180, 150, 200, 0.2);
   --shadow-xl: 0 16px 48px rgba(180, 150, 200, 0.25);
-  
+
   /* Soft corners */
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -391,15 +398,15 @@
   --color-primary-hover: 280 100% 55%;
   --color-primary-light: 280 100% 80%;
   --color-primary-dark: 280 100% 45%;
-  
+
   /* Secondary - Cyan */
   --color-secondary: 180 100% 50%;
   --color-secondary-hover: 180 100% 45%;
-  
+
   /* Accent - Neon Green */
   --color-accent: 140 100% 50%;
   --color-accent-hover: 140 100% 45%;
-  
+
   /* Backgrounds - Deep Black */
   --color-bg: 260 30% 5%;
   --color-bg-secondary: 260 30% 8%;
@@ -407,42 +414,42 @@
   --color-surface: 260 30% 10%;
   --color-surface-hover: 260 30% 13%;
   --color-surface-active: 260 30% 16%;
-  
+
   /* Text - Bright */
   --color-text: 0 0% 100%;
   --color-text-secondary: 180 50% 75%;
   --color-text-muted: 260 30% 55%;
   --color-text-inverse: 260 30% 5%;
-  
+
   /* Borders - Glowing */
   --color-border: 280 80% 40%;
   --color-border-hover: 280 100% 60%;
-  
+
   /* Status Colors - Neon */
   --color-success: 140 100% 50%;
   --color-warning: 45 100% 55%;
   --color-error: 350 100% 55%;
   --color-info: 180 100% 50%;
-  
+
   /* Specifics */
   --sidebar-bg: 260 30% 4%;
   --card-bg: 260 30% 10%;
   --input-bg: 260 30% 12%;
   --modal-backdrop: 260 30% 3% / 0.9;
-  
+
   /* Neon-specific */
   --glass-bg: 260 30% 8% / 0.8;
   --glass-border: 280 100% 60%;
   --glow-color: 280 100% 60% / 0.4;
   --glow-secondary: 180 100% 50% / 0.3;
   --glow-accent: 140 100% 50% / 0.3;
-  
+
   /* Neon Shadows */
   --shadow-sm: 0 0 10px hsl(280 100% 60% / 0.3);
   --shadow-md: 0 0 20px hsl(280 100% 60% / 0.4);
   --shadow-lg: 0 0 30px hsl(280 100% 60% / 0.5);
   --shadow-xl: 0 0 50px hsl(280 100% 60% / 0.6);
-  
+
   /* Glowing animations */
   --neon-flicker: neon-flicker 2s infinite;
 }
@@ -469,7 +476,7 @@ body {
   color: hsl(var(--color-text));
   line-height: 1.6;
   min-height: 100vh;
-  transition: 
+  transition:
     background-color var(--transition-base),
     color var(--transition-base);
 }
@@ -583,27 +590,56 @@ body {
 }
 
 /* Text Utilities */
-.text-primary { color: hsl(var(--color-primary)); }
-.text-secondary { color: hsl(var(--color-text-secondary)); }
-.text-muted { color: hsl(var(--color-text-muted)); }
-.text-success { color: hsl(var(--color-success)); }
-.text-warning { color: hsl(var(--color-warning)); }
-.text-error { color: hsl(var(--color-error)); }
+.text-primary {
+  color: hsl(var(--color-primary));
+}
+
+.text-secondary {
+  color: hsl(var(--color-text-secondary));
+}
+
+.text-muted {
+  color: hsl(var(--color-text-muted));
+}
+
+.text-success {
+  color: hsl(var(--color-success));
+}
+
+.text-warning {
+  color: hsl(var(--color-warning));
+}
+
+.text-error {
+  color: hsl(var(--color-error));
+}
 
 /* Background Utilities */
-.bg-primary { background: hsl(var(--color-primary)); }
-.bg-surface { background: hsl(var(--color-surface)); }
-.bg-success { background: hsl(var(--color-success)); }
-.bg-warning { background: hsl(var(--color-warning)); }
-.bg-error { background: hsl(var(--color-error)); }
+.bg-primary {
+  background: hsl(var(--color-primary));
+}
+
+.bg-surface {
+  background: hsl(var(--color-surface));
+}
+
+.bg-success {
+  background: hsl(var(--color-success));
+}
+
+.bg-warning {
+  background: hsl(var(--color-warning));
+}
+
+.bg-error {
+  background: hsl(var(--color-error));
+}
 
 /* Gradient Text */
 .gradient-text {
-  background: linear-gradient(
-    135deg,
-    hsl(var(--color-primary)),
-    hsl(var(--color-secondary))
-  );
+  background: linear-gradient(135deg,
+      hsl(var(--color-primary)),
+      hsl(var(--color-secondary)));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -641,41 +677,88 @@ body {
    ANIMATIONS
 ============================================================================= */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideIn {
-  from { opacity: 0; transform: translateX(-20px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 @keyframes neon-flicker {
-  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
-    text-shadow: 
+
+  0%,
+  19%,
+  21%,
+  23%,
+  25%,
+  54%,
+  56%,
+  100% {
+    text-shadow:
       0 0 5px hsl(var(--color-primary)),
       0 0 10px hsl(var(--color-primary)),
       0 0 20px hsl(var(--color-primary)),
       0 0 40px hsl(var(--color-primary));
   }
-  20%, 24%, 55% {
+
+  20%,
+  24%,
+  55% {
     text-shadow: none;
   }
 }
 
 @keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 20px hsl(var(--glow-color)); }
-  50% { box-shadow: 0 0 40px hsl(var(--glow-color)), 0 0 60px hsl(var(--glow-secondary, var(--glow-color))); }
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px hsl(var(--glow-color));
+  }
+
+  50% {
+    box-shadow: 0 0 40px hsl(var(--glow-color)), 0 0 60px hsl(var(--glow-secondary, var(--glow-color)));
+  }
 }
 
-.animate-fade-in { animation: fadeIn 0.3s ease-out; }
-.animate-slide-in { animation: slideIn 0.3s ease-out; }
-.animate-pulse { animation: pulse 2s infinite; }
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+.animate-pulse {
+  animation: pulse 2s infinite;
+}
 
 /* Neon-specific animations */
 [data-theme="neon"] .neon-glow {
@@ -744,12 +827,29 @@ body {
   box-shadow: 0 0 8px hsl(var(--glow-color));
 }
 
-.theme-dot[data-theme="minimalist"] { background: linear-gradient(135deg, #3b82f6, #a855f7); }
-.theme-dot[data-theme="bento"] { background: linear-gradient(135deg, #8b5cf6, #3b82f6); }
-.theme-dot[data-theme="retro"] { background: linear-gradient(135deg, #ec4899, #14b8a6); }
-.theme-dot[data-theme="brutalist"] { background: linear-gradient(135deg, #000000, #ef4444); }
-.theme-dot[data-theme="pastel"] { background: linear-gradient(135deg, #c4b5fd, #fda4af); }
-.theme-dot[data-theme="neon"] { background: linear-gradient(135deg, #a855f7, #06b6d4); }
+.theme-dot[data-theme="minimalist"] {
+  background: linear-gradient(135deg, #3b82f6, #a855f7);
+}
+
+.theme-dot[data-theme="bento"] {
+  background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+}
+
+.theme-dot[data-theme="retro"] {
+  background: linear-gradient(135deg, #ec4899, #14b8a6);
+}
+
+.theme-dot[data-theme="brutalist"] {
+  background: linear-gradient(135deg, #000000, #ef4444);
+}
+
+.theme-dot[data-theme="pastel"] {
+  background: linear-gradient(135deg, #c4b5fd, #fda4af);
+}
+
+.theme-dot[data-theme="neon"] {
+  background: linear-gradient(135deg, #a855f7, #06b6d4);
+}
 
 
 /* =============================================================================
@@ -761,13 +861,14 @@ body {
     --space-xl: 1.5rem;
     --space-2xl: 2rem;
   }
-  
+
   .card {
     border-radius: var(--radius-md);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
