@@ -49,6 +49,10 @@ const CreateAgentPage = lazy(() => import('./pages/llm/CreateAgentPage'));
 const AgentBuilderListPage = lazy(() => import('./features/agents/pages/AgentListPage'));
 const AgentBuilderFormPage = lazy(() => import('./features/agents/components/AgentBuilderForm'));
 
+// AI Model Management pages
+const AIModelsPage = lazy(() => import('./features/ai-models/pages/AIModelsPage'));
+const LocalModelsPage = lazy(() => import('./features/local-models/pages/LocalModelsPage').then(module => ({ default: module.LocalModelsPage })));
+
 // Loading fallback
 function LoadingFallback() {
     return (
@@ -191,6 +195,12 @@ function AppRoutes() {
             <Route element={<ProtectedRoute><ProtectedLayout /></ProtectedRoute>}>
                 <Route path="/llm/keys" element={<LLMKeysPage />} />
                 <Route path="/llm/agents/create" element={<CreateAgentPage />} />
+            </Route>
+
+            {/* AI Model Management Routes - Admin/Staff only */}
+            <Route element={<ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN', 'STAFF']}><ProtectedLayout /></ProtectedRoute>}>
+                <Route path="/ai/models" element={<AIModelsPage />} />
+                <Route path="/ai/local-models" element={<LocalModelsPage />} />
             </Route>
 
             {/* Unauthorized page */}

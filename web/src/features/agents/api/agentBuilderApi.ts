@@ -100,7 +100,8 @@ export interface CustomAgent {
     name: string;
     description: string | null;
     slug: string;
-    model_id: number;
+    model_id: number | null;
+    local_model_id: number | null;
     model_name: string | null;
     model_provider: string | null;
     api_key_id: number | null;
@@ -166,7 +167,8 @@ export interface AgentCreationCheck {
 export interface CreateAgentDTO {
     name: string;
     description?: string;
-    model_id: number;
+    model_id?: number;
+    local_model_id?: number;
     api_key_id?: number;
     temperature?: number;
     max_tokens?: number;
@@ -189,6 +191,7 @@ export interface UpdateAgentDTO {
     name?: string;
     description?: string;
     model_id?: number;
+    local_model_id?: number;
     api_key_id?: number;
     temperature?: number;
     max_tokens?: number;

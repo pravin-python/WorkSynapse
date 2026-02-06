@@ -20,6 +20,10 @@ from app.agents.orchestrator.llm.providers.ollama_provider import OllamaProvider
 from app.agents.orchestrator.llm.providers.gemini_provider import GeminiProvider
 from app.agents.orchestrator.llm.providers.claude_provider import ClaudeProvider
 from app.agents.orchestrator.llm.providers.huggingface_provider import HuggingFaceProvider
+from app.agents.orchestrator.llm.providers.groq_provider import GroqProvider
+from app.agents.orchestrator.llm.providers.azure_openai_provider import AzureOpenAIProvider
+from app.agents.orchestrator.llm.providers.aws_bedrock_provider import BedrockProvider
+from app.agents.orchestrator.llm.providers.deepseek_provider import DeepSeekProvider
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +44,10 @@ class LLMRouter:
         "gemini": GeminiProvider,
         "claude": ClaudeProvider,
         "huggingface": HuggingFaceProvider,
+        "groq": GroqProvider,
+        "azure_openai": AzureOpenAIProvider,
+        "aws_bedrock": BedrockProvider,
+        "deepseek": DeepSeekProvider,
     }
 
     def __init__(self, config: Optional[OrchestratorConfig] = None):

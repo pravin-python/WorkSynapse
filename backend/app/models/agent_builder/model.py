@@ -15,7 +15,10 @@ Key Tables:
 """
 
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
+if TYPE_CHECKING:
+    from app.models.local_models.model import LocalModel
+    from app.models.llm.model import LLMKeyProvider
 from enum import Enum
 from sqlalchemy import (
     Column, Integer, String, Text, DateTime, Float,
@@ -29,16 +32,9 @@ from app.models.base import Base, AuditMixin
 # ENUMS
 # =============================================================================
 
-class AgentModelProvider(str, Enum):
-    """AI Model Providers."""
-    OPENAI = "openai"
-    ANTHROPIC = "anthropic"
-    GOOGLE = "google"
-    GEMINI = "gemini"
-    OLLAMA = "ollama"
-    HUGGINGFACE = "huggingface"
-    AZURE_OPENAI = "azure_openai"
-    CUSTOM = "custom"
+# NOTE: Provider is now relational (LLMKeyProvider). We no longer use an
+# enum type here. Provider-specific metadata and type live in
+# `app.models.llm.model.LLMKeyProvider`.
 
 
 class CustomAgentStatus(str, Enum):
@@ -91,11 +87,16 @@ class AgentModel(Base, AuditMixin):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     display_name: Mapped[str] = mapped_column(String(200), nullable=False)
-    provider: Mapped[AgentModelProvider] = mapped_column(
-        SQLEnum(AgentModelProvider),
+    
+    provider_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("llm_key_providers.id"),
         nullable=False,
         index=True
     )
+    
+    provider: Mapped["LLMKeyProvider"] = relationship("LLMKeyProvider", back_populates="models")
+    
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
     # API requirements
@@ -125,7 +126,8 @@ class AgentModel(Base, AuditMixin):
     )
     
     def __repr__(self):
-        return f"<AgentModel {self.name} ({self.provider.value})>"
+        provider_name = self.provider.display_name if getattr(self, "provider", None) else "unknown"
+        return f"<AgentModel {self.name} ({provider_name})>"
 
 
 class AgentApiKey(Base, AuditMixin):
@@ -136,8 +138,8 @@ class AgentApiKey(Base, AuditMixin):
     """
     __tablename__ = "agent_api_keys"
     __table_args__ = (
-        UniqueConstraint('user_id', 'provider', 'label', name='uq_agent_api_key'),
-        Index('ix_agent_api_keys_user_provider', 'user_id', 'provider'),
+        UniqueConstraint('user_id', 'provider_id', 'label', name='uq_agent_api_key'),
+        Index('ix_agent_api_keys_user_provider', 'user_id', 'provider_id'),
     )
     
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -146,10 +148,14 @@ class AgentApiKey(Base, AuditMixin):
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False
     )
-    provider: Mapped[AgentModelProvider] = mapped_column(
-        SQLEnum(AgentModelProvider),
-        nullable=False
+    provider_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("llm_key_providers.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True
     )
+
+    provider: Mapped["LLMKeyProvider"] = relationship("LLMKeyProvider")
     
     # Key details
     label: Mapped[str] = mapped_column(String(100), nullable=False, default="default")
@@ -171,7 +177,8 @@ class AgentApiKey(Base, AuditMixin):
     )
     
     def __repr__(self):
-        return f"<AgentApiKey {self.provider.value} - {self.key_preview}>"
+        provider_name = self.provider.display_name if getattr(self, "provider", None) else "unknown"
+        return f"<AgentApiKey {provider_name} - {self.key_preview}>"
 
 
 # =============================================================================
@@ -200,10 +207,15 @@ class CustomAgent(Base, AuditMixin):
     slug: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
     
     # Model Configuration
-    model_id: Mapped[int] = mapped_column(
+    model_id: Mapped[Optional[int]] = mapped_column(
         Integer,
         ForeignKey("agent_models.id", ondelete="RESTRICT"),
-        nullable=False
+        nullable=True
+    )
+    local_model_id: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        ForeignKey("local_models.id", ondelete="SET NULL"),
+        nullable=True
     )
     api_key_id: Mapped[Optional[int]] = mapped_column(
         Integer,
@@ -225,7 +237,7 @@ class CustomAgent(Base, AuditMixin):
     
     # Status
     status: Mapped[CustomAgentStatus] = mapped_column(
-        SQLEnum(CustomAgentStatus),
+        SQLEnum(CustomAgentStatus, values_callable=lambda obj: [e.value for e in obj]),
         default=CustomAgentStatus.DRAFT,
         index=True
     )
@@ -249,7 +261,8 @@ class CustomAgent(Base, AuditMixin):
     icon: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     
     # Relationships
-    model: Mapped["AgentModel"] = relationship("AgentModel", back_populates="custom_agents")
+    model: Mapped[Optional["AgentModel"]] = relationship("AgentModel", back_populates="custom_agents")
+    local_model: Mapped[Optional["LocalModel"]] = relationship("LocalModel")
     api_key: Mapped[Optional["AgentApiKey"]] = relationship("AgentApiKey", back_populates="custom_agents")
     tools: Mapped[List["AgentToolConfig"]] = relationship(
         "AgentToolConfig",
@@ -295,7 +308,7 @@ class AgentToolConfig(Base):
     
     # Tool info
     tool_type: Mapped[AgentToolType] = mapped_column(
-        SQLEnum(AgentToolType),
+        SQLEnum(AgentToolType, values_callable=lambda obj: [e.value for e in obj]),
         nullable=False
     )
     tool_name: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -345,7 +358,7 @@ class AgentConnection(Base, AuditMixin):
     
     # Connection info
     connection_type: Mapped[AgentConnectionType] = mapped_column(
-        SQLEnum(AgentConnectionType),
+        SQLEnum(AgentConnectionType, values_callable=lambda obj: [e.value for e in obj]),
         nullable=False
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)

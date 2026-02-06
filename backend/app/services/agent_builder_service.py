@@ -18,9 +18,10 @@ from sqlalchemy.orm import selectinload, joinedload
 
 from app.models.agent_builder.model import (
     AgentModel, AgentApiKey, CustomAgent, AgentToolConfig,
-    AgentConnection, AgentMCPServer, AgentModelProvider,
+    AgentConnection, AgentMCPServer,
     CustomAgentStatus, AgentToolType, AgentConnectionType
 )
+from app.models.local_models.model import LocalModel, ModelStatus
 from app.schemas.agent_builder import (
     AgentModelCreate, AgentModelUpdate,
     AgentApiKeyCreate, AgentApiKeyUpdate,
@@ -28,7 +29,7 @@ from app.schemas.agent_builder import (
     AgentToolConfigCreate, AgentToolConfigUpdate,
     AgentConnectionCreate, AgentConnectionUpdate,
     AgentMCPServerCreate, AgentMCPServerUpdate,
-    AgentModelProviderEnum, CustomAgentStatusEnum
+    CustomAgentStatusEnum
 )
 from app.core.encryption import encrypt_value, decrypt_value
 
@@ -55,14 +56,18 @@ class AgentBuilderService:
     @staticmethod
     async def get_models(
         db: AsyncSession,
-        provider: Optional[AgentModelProviderEnum] = None,
+        provider_id: Optional[int] = None,
         include_deprecated: bool = False
     ) -> List[AgentModel]:
         """Get all available AI models."""
-        query = select(AgentModel).where(AgentModel.is_deleted == False)
+        query = (
+            select(AgentModel)
+            .options(joinedload(AgentModel.provider))
+            .where(AgentModel.is_deleted == False)
+        )
         
-        if provider:
-            query = query.where(AgentModel.provider == AgentModelProvider(provider.value))
+        if provider_id:
+            query = query.where(AgentModel.provider_id == provider_id)
         
         if not include_deprecated:
             query = query.where(AgentModel.is_deprecated == False)
@@ -75,9 +80,13 @@ class AgentBuilderService:
     @staticmethod
     async def get_model(db: AsyncSession, model_id: int) -> Optional[AgentModel]:
         """Get a specific model by ID."""
-        query = select(AgentModel).where(
-            AgentModel.id == model_id,
-            AgentModel.is_deleted == False
+        query = (
+            select(AgentModel)
+            .options(joinedload(AgentModel.provider))
+            .where(
+                AgentModel.id == model_id,
+                AgentModel.is_deleted == False
+            )
         )
         result = await db.execute(query)
         return result.scalar_one_or_none()
@@ -88,7 +97,7 @@ class AgentBuilderService:
         model = AgentModel(
             name=data.name,
             display_name=data.display_name,
-            provider=AgentModelProvider(data.provider.value),
+            provider_id=data.provider_id,
             description=data.description,
             requires_api_key=data.requires_api_key,
             api_key_prefix=data.api_key_prefix,
@@ -107,151 +116,43 @@ class AgentBuilderService:
         return model
     
     @staticmethod
-    async def seed_default_models(db: AsyncSession) -> int:
-        """Seed default AI models."""
-        default_models = [
-            # OpenAI Models
-            {
-                "name": "gpt-4o",
-                "display_name": "GPT-4o",
-                "provider": AgentModelProvider.OPENAI,
-                "description": "Most capable GPT-4 model with vision support",
-                "requires_api_key": True,
-                "api_key_prefix": "sk-",
-                "context_window": 128000,
-                "max_output_tokens": 16384,
-                "supports_vision": True,
-                "supports_tools": True,
-                "supports_streaming": True,
-                "input_price_per_million": 2.5,
-                "output_price_per_million": 10.0,
-            },
-            {
-                "name": "gpt-4o-mini",
-                "display_name": "GPT-4o Mini",
-                "provider": AgentModelProvider.OPENAI,
-                "description": "Fast and affordable GPT-4 variant",
-                "requires_api_key": True,
-                "api_key_prefix": "sk-",
-                "context_window": 128000,
-                "max_output_tokens": 16384,
-                "supports_vision": True,
-                "supports_tools": True,
-                "supports_streaming": True,
-                "input_price_per_million": 0.15,
-                "output_price_per_million": 0.6,
-            },
-            {
-                "name": "gpt-4-turbo",
-                "display_name": "GPT-4 Turbo",
-                "provider": AgentModelProvider.OPENAI,
-                "description": "Enhanced GPT-4 with improved capabilities",
-                "requires_api_key": True,
-                "api_key_prefix": "sk-",
-                "context_window": 128000,
-                "max_output_tokens": 4096,
-                "supports_vision": True,
-                "supports_tools": True,
-                "supports_streaming": True,
-                "input_price_per_million": 10.0,
-                "output_price_per_million": 30.0,
-            },
-            # Anthropic Models
-            {
-                "name": "claude-3-5-sonnet-20241022",
-                "display_name": "Claude 3.5 Sonnet",
-                "provider": AgentModelProvider.ANTHROPIC,
-                "description": "Anthropic's most intelligent model",
-                "requires_api_key": True,
-                "api_key_prefix": "sk-ant-",
-                "context_window": 200000,
-                "max_output_tokens": 8192,
-                "supports_vision": True,
-                "supports_tools": True,
-                "supports_streaming": True,
-                "input_price_per_million": 3.0,
-                "output_price_per_million": 15.0,
-            },
-            {
-                "name": "claude-3-5-haiku-20241022",
-                "display_name": "Claude 3.5 Haiku",
-                "provider": AgentModelProvider.ANTHROPIC,
-                "description": "Fast and cost-effective Claude model",
-                "requires_api_key": True,
-                "api_key_prefix": "sk-ant-",
-                "context_window": 200000,
-                "max_output_tokens": 8192,
-                "supports_vision": True,
-                "supports_tools": True,
-                "supports_streaming": True,
-                "input_price_per_million": 0.8,
-                "output_price_per_million": 4.0,
-            },
-            # Google Models
-            {
-                "name": "gemini-2.0-flash-exp",
-                "display_name": "Gemini 2.0 Flash",
-                "provider": AgentModelProvider.GEMINI,
-                "description": "Google's latest multimodal model",
-                "requires_api_key": True,
-                "api_key_prefix": None,
-                "context_window": 1000000,
-                "max_output_tokens": 8192,
-                "supports_vision": True,
-                "supports_tools": True,
-                "supports_streaming": True,
-                "input_price_per_million": 0.0,  # Currently free
-                "output_price_per_million": 0.0,
-            },
-            {
-                "name": "gemini-1.5-pro",
-                "display_name": "Gemini 1.5 Pro",
-                "provider": AgentModelProvider.GEMINI,
-                "description": "Powerful multimodal model",
-                "requires_api_key": True,
-                "api_key_prefix": None,
-                "context_window": 2000000,
-                "max_output_tokens": 8192,
-                "supports_vision": True,
-                "supports_tools": True,
-                "supports_streaming": True,
-                "input_price_per_million": 1.25,
-                "output_price_per_million": 5.0,
-            },
-            # Ollama (Local)
-            {
-                "name": "llama3.2",
-                "display_name": "Llama 3.2 (Local)",
-                "provider": AgentModelProvider.OLLAMA,
-                "description": "Meta's latest open-source model",
-                "requires_api_key": False,
-                "api_key_prefix": None,
-                "base_url": "http://localhost:11434",
-                "context_window": 128000,
-                "max_output_tokens": 4096,
-                "supports_vision": False,
-                "supports_tools": True,
-                "supports_streaming": True,
-                "input_price_per_million": 0.0,
-                "output_price_per_million": 0.0,
-            },
-        ]
+    async def update_model(db: AsyncSession, model_id: int, data: AgentModelUpdate) -> Optional[AgentModel]:
+        """Update an AI model."""
+        model = await AgentBuilderService.get_model(db, model_id)
+        if not model:
+            return None
         
-        count = 0
-        for model_data in default_models:
-            # Check if exists
-            existing = await db.execute(
-                select(AgentModel).where(AgentModel.name == model_data["name"])
-            )
-            if existing.scalar_one_or_none():
-                continue
+        update_data = data.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(model, key, value)
             
-            model = AgentModel(**model_data)
-            db.add(model)
-            count += 1
-        
         await db.commit()
-        return count
+        await db.refresh(model)
+        return model
+
+    @staticmethod
+    async def delete_model(db: AsyncSession, model_id: int) -> bool:
+        """Soft delete an AI model."""
+        model = await AgentBuilderService.get_model(db, model_id)
+        if not model:
+            return False
+            
+        model.is_active = False
+        model.is_deprecated = True
+        model.is_deleted = True
+        model.is_active = False
+        await db.commit()
+        return True
+
+    @staticmethod
+    async def seed_default_models(db: AsyncSession) -> int:
+        """
+        Seed default AI models.
+        
+        DEPRECATED: Models are now seeded via LLMKeyService.seed_default_providers
+        which handles the relational mapping to providers.
+        """
+        return 0
     
     # ==========================================================================
     # API KEYS
@@ -261,7 +162,7 @@ class AgentBuilderService:
     async def get_user_api_keys(
         db: AsyncSession,
         user_id: int,
-        provider: Optional[AgentModelProviderEnum] = None
+        provider_id: Optional[int] = None
     ) -> List[AgentApiKey]:
         """Get all API keys for a user."""
         query = select(AgentApiKey).where(
@@ -269,8 +170,8 @@ class AgentBuilderService:
             AgentApiKey.is_deleted == False
         )
         
-        if provider:
-            query = query.where(AgentApiKey.provider == AgentModelProvider(provider.value))
+        if provider_id:
+            query = query.where(AgentApiKey.provider_id == provider_id)
         
         query = query.order_by(AgentApiKey.created_at.desc())
         
@@ -311,7 +212,7 @@ class AgentBuilderService:
         
         api_key = AgentApiKey(
             user_id=user_id,
-            provider=AgentModelProvider(data.provider.value),
+            provider_id=data.provider_id,
             label=data.label,
             encrypted_key=encrypted_key,
             key_preview=key_preview,
@@ -383,10 +284,10 @@ class AgentBuilderService:
     async def check_api_key_exists(
         db: AsyncSession,
         user_id: int,
-        provider: AgentModelProviderEnum
+        provider_id: int
     ) -> Tuple[bool, List[AgentApiKey]]:
         """Check if user has API key for provider."""
-        keys = await AgentBuilderService.get_user_api_keys(db, user_id, provider)
+        keys = await AgentBuilderService.get_user_api_keys(db, user_id, provider_id)
         active_keys = [k for k in keys if k.is_active and k.is_valid]
         return len(active_keys) > 0, active_keys
     
@@ -441,6 +342,7 @@ class AgentBuilderService:
             select(CustomAgent)
             .options(
                 joinedload(CustomAgent.model),
+                joinedload(CustomAgent.local_model),
                 joinedload(CustomAgent.api_key)
             )
             .where(and_(*conditions))
@@ -526,23 +428,38 @@ class AgentBuilderService:
     ) -> CustomAgent:
         """Create a new custom agent."""
         # Verify model exists
-        model = await AgentBuilderService.get_model(db, data.model_id)
-        if not model:
-            raise AgentBuilderServiceError("Model not found")
-        
-        # Check API key if required
-        if model.requires_api_key:
-            if not data.api_key_id:
-                raise AgentBuilderServiceError(
-                    f"API key is required for {model.display_name}"
-                )
-            api_key = await AgentBuilderService.get_api_key(db, data.api_key_id, user_id)
-            if not api_key:
-                raise AgentBuilderServiceError("API key not found")
-            if api_key.provider != model.provider:
-                raise AgentBuilderServiceError(
-                    f"API key provider ({api_key.provider.value}) does not match model provider ({model.provider.value})"
-                )
+        # Verify model exists
+        if data.model_id:
+            model = await AgentBuilderService.get_model(db, data.model_id)
+            if not model:
+                raise AgentBuilderServiceError("Model not found")
+            
+            # Check API key if required
+            if model.requires_api_key:
+                if not data.api_key_id:
+                    raise AgentBuilderServiceError(
+                        f"API key is required for {model.display_name}"
+                    )
+                api_key = await AgentBuilderService.get_api_key(db, data.api_key_id, user_id)
+                if not api_key:
+                    raise AgentBuilderServiceError("API key not found")
+                if api_key.provider_id != model.provider_id:
+                    ak_name = api_key.provider.display_name if getattr(api_key, "provider", None) else str(api_key.provider_id)
+                    m_name = model.provider.display_name if getattr(model, "provider", None) else str(model.provider_id)
+                    raise AgentBuilderServiceError(
+                        f"API key provider ({ak_name}) does not match model provider ({m_name})"
+                    )
+        elif data.local_model_id:
+            local_model = await db.execute(
+                select(LocalModel).where(LocalModel.id == data.local_model_id)
+            )
+            local_model = local_model.scalar_one_or_none()
+            if not local_model:
+                raise AgentBuilderServiceError("Local model not found")
+            if local_model.status != ModelStatus.READY:
+                raise AgentBuilderServiceError("Local model is not ready")
+        else:
+             raise AgentBuilderServiceError("No model selected")
         
         # Check for duplicate name
         existing = await db.execute(
@@ -561,6 +478,7 @@ class AgentBuilderService:
             description=data.description,
             slug=AgentBuilderService._generate_slug(data.name),
             model_id=data.model_id,
+            local_model_id=data.local_model_id,
             api_key_id=data.api_key_id,
             temperature=data.temperature,
             max_tokens=data.max_tokens,
@@ -661,15 +579,30 @@ class AgentBuilderService:
                 setattr(agent, field, value)
         
         # Handle model change
-        if data.model_id and data.model_id != agent.model_id:
+        # Handle model change
+        if data.model_id is not None:
             model = await AgentBuilderService.get_model(db, data.model_id)
             if not model:
                 raise AgentBuilderServiceError("Model not found")
             agent.model_id = data.model_id
+            agent.local_model_id = None
             
             # May need to clear API key if provider changed
-            if agent.api_key and agent.api_key.provider != model.provider:
+            if agent.api_key and agent.api_key.provider_id != model.provider_id:
                 agent.api_key_id = None
+        elif data.local_model_id is not None:
+            local_model = await db.execute(
+                select(LocalModel).where(LocalModel.id == data.local_model_id)
+            )
+            local_model = local_model.scalar_one_or_none()
+            if not local_model:
+                raise AgentBuilderServiceError("Local model not found")
+            if local_model.status != ModelStatus.READY:
+                raise AgentBuilderServiceError("Local model is not ready")
+            
+            agent.local_model_id = data.local_model_id
+            agent.model_id = None
+            agent.api_key_id = None
         
         # Handle API key change
         if data.api_key_id is not None:
@@ -729,8 +662,14 @@ class AgentBuilderService:
         if not agent.system_prompt:
             errors.append("System prompt is required")
         
-        if agent.model.requires_api_key and not agent.api_key_id:
-            errors.append("API key is required for this model")
+        if agent.model:
+            if agent.model.requires_api_key and not agent.api_key_id:
+                errors.append("API key is required for this model")
+        elif agent.local_model:
+            if agent.local_model.status != ModelStatus.READY:
+                errors.append("Local model is not ready")
+        else:
+            errors.append("No model selected")
         
         if errors:
             raise AgentBuilderServiceError(f"Cannot activate: {', '.join(errors)}")

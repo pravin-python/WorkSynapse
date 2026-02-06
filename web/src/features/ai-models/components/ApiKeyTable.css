@@ -1,0 +1,156 @@
+/**
+ * API Key Table Styles
+ * ====================
+ * Theme-compatible styles using CSS custom properties
+ */
+
+.api-keys-table-container {
+    background: hsl(var(--card-bg));
+    border: 1px solid hsl(var(--color-border));
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    transition: opacity var(--transition-base);
+    box-shadow: var(--shadow-sm);
+}
+
+.api-keys-table-container.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.api-keys-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.api-keys-table thead {
+    background: hsl(var(--color-bg-secondary));
+}
+
+.api-keys-table th {
+    padding: var(--space-md);
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: hsl(var(--color-text-secondary));
+    border-bottom: 1px solid hsl(var(--color-border));
+}
+
+.api-keys-table td {
+    padding: var(--space-md);
+    border-bottom: 1px solid hsl(var(--color-border) / 0.5);
+    color: hsl(var(--color-text));
+    font-size: 0.9rem;
+}
+
+.api-keys-table tbody tr {
+    transition: background var(--transition-fast);
+}
+
+.api-keys-table tbody tr:hover {
+    background: hsl(var(--color-surface-hover));
+}
+
+.api-keys-table tbody tr.inactive {
+    opacity: 0.6;
+}
+
+.api-keys-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.key-preview {
+    background: hsl(var(--color-bg-tertiary));
+    padding: 4px 10px;
+    border-radius: var(--radius-md);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: hsl(var(--color-primary));
+}
+
+.usage-count {
+    color: hsl(var(--color-text-secondary));
+    font-size: 0.85rem;
+}
+
+.date-cell {
+    color: hsl(var(--color-text-muted));
+    font-size: 0.85rem;
+}
+
+.key-actions {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+.key-actions .btn-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    border: none;
+    background: transparent;
+    color: hsl(var(--color-text-secondary));
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+}
+
+.key-actions .btn-icon:hover {
+    background: hsl(var(--color-surface-hover));
+    color: hsl(var(--color-text));
+}
+
+.key-actions .btn-icon.danger:hover {
+    background: hsl(var(--color-error) / 0.15);
+    color: hsl(var(--color-error));
+}
+
+.key-actions .btn-icon.success:hover {
+    background: hsl(var(--color-success) / 0.15);
+    color: hsl(var(--color-success));
+}
+
+/* Empty State */
+.api-keys-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-3xl) var(--space-xl);
+    text-align: center;
+    background: hsl(var(--card-bg));
+    border: 1px solid hsl(var(--color-border));
+    border-radius: var(--radius-xl);
+}
+
+.api-keys-empty .empty-icon {
+    color: hsl(var(--color-text-muted));
+    margin-bottom: var(--space-md);
+}
+
+.api-keys-empty h3 {
+    color: hsl(var(--color-text));
+    font-size: 1.25rem;
+    margin: 0 0 var(--space-sm) 0;
+}
+
+.api-keys-empty p {
+    color: hsl(var(--color-text-secondary));
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .api-keys-table-container {
+        overflow-x: auto;
+    }
+
+    .api-keys-table {
+        min-width: 800px;
+    }
+}

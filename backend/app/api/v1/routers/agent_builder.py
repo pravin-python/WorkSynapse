@@ -35,7 +35,7 @@ from app.schemas.agent_builder import (
     ValidateAgentRequest, ValidateAgentResponse,
     AvailableToolInfo, AvailableConnectionInfo,
     # Enums
-    AgentModelProviderEnum, CustomAgentStatusEnum, AgentToolTypeEnum
+    CustomAgentStatusEnum, AgentToolTypeEnum
 )
 
 logger = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ router = APIRouter()
 
 @router.get("/models", response_model=List[AgentModelWithKeyStatus])
 async def list_models(
-    provider: Optional[AgentModelProviderEnum] = None,
+    provider_id: Optional[int] = None,
     include_deprecated: bool = Query(False),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -58,20 +58,24 @@ async def list_models(
     
     Shows whether the current user has API keys for each model's provider.
     """
-    models = await AgentBuilderService.get_models(db, provider, include_deprecated)
+    models = await AgentBuilderService.get_models(db, provider_id, include_deprecated)
     
     result = []
     for model in models:
         # Get user's keys for this provider
         has_key, keys = await AgentBuilderService.check_api_key_exists(
-            db, current_user.id, AgentModelProviderEnum(model.provider.value)
+            db, current_user.id, model.provider_id
         )
         
         result.append(AgentModelWithKeyStatus(
             id=model.id,
             name=model.name,
             display_name=model.display_name,
-            provider=AgentModelProviderEnum(model.provider.value),
+            provider_id=model.provider_id,
+            provider={
+                "id": model.provider.id if getattr(model, "provider", None) else None,
+                "display_name": model.provider.display_name if getattr(model, "provider", None) else None,
+            },
             description=model.description,
             requires_api_key=model.requires_api_key,
             api_key_prefix=model.api_key_prefix,
@@ -121,7 +125,7 @@ async def seed_models(
 
 @router.get("/api-keys", response_model=List[AgentApiKeyResponse])
 async def list_api_keys(
-    provider: Optional[AgentModelProviderEnum] = None,
+    provider_id: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -131,22 +135,23 @@ async def list_api_keys(
     Keys are shown with masked preview only - never raw values.
     """
     keys = await AgentBuilderService.get_user_api_keys(
-        db, current_user.id, provider
+        db, current_user.id, provider_id
     )
     
     return [
-        AgentApiKeyResponse(
-            id=key.id,
-            provider=AgentModelProviderEnum(key.provider.value),
-            label=key.label,
-            key_preview=key.key_preview,
-            is_active=key.is_active,
-            is_valid=key.is_valid,
-            last_validated_at=key.last_validated_at,
-            last_used_at=key.last_used_at,
-            usage_count=key.usage_count,
-            created_at=key.created_at
-        )
+            AgentApiKeyResponse(
+                id=key.id,
+                provider_id=key.provider_id,
+                provider_name=key.provider.display_name if getattr(key, "provider", None) else None,
+                label=key.label,
+                key_preview=key.key_preview,
+                is_active=key.is_active,
+                is_valid=key.is_valid,
+                last_validated_at=key.last_validated_at,
+                last_used_at=key.last_used_at,
+                usage_count=key.usage_count,
+                created_at=key.created_at
+            )
         for key in keys
     ]
 
@@ -166,7 +171,8 @@ async def create_api_key(
         key = await AgentBuilderService.create_api_key(db, current_user.id, data)
         return AgentApiKeyResponse(
             id=key.id,
-            provider=AgentModelProviderEnum(key.provider.value),
+            provider_id=key.provider_id,
+            provider_name=key.provider.display_name if getattr(key, "provider", None) else None,
             label=key.label,
             key_preview=key.key_preview,
             is_active=key.is_active,
@@ -193,7 +199,8 @@ async def get_api_key(
     
     return AgentApiKeyResponse(
         id=key.id,
-        provider=AgentModelProviderEnum(key.provider.value),
+        provider_id=key.provider_id,
+        provider_name=key.provider.display_name if getattr(key, "provider", None) else None,
         label=key.label,
         key_preview=key.key_preview,
         is_active=key.is_active,
@@ -220,7 +227,8 @@ async def update_api_key(
         
         return AgentApiKeyResponse(
             id=key.id,
-            provider=AgentModelProviderEnum(key.provider.value),
+            provider_id=key.provider_id,
+            provider_name=key.provider.display_name if getattr(key, "provider", None) else None,
             label=key.label,
             key_preview=key.key_preview,
             is_active=key.is_active,
@@ -252,13 +260,13 @@ async def delete_api_key(
 
 @router.post("/api-keys/check")
 async def check_api_key_exists(
-    provider: AgentModelProviderEnum,
+    provider_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Check if user has API key for a provider."""
     has_key, keys = await AgentBuilderService.check_api_key_exists(
-        db, current_user.id, provider
+        db, current_user.id, provider_id
     )
     return {
         "has_api_key": has_key,
@@ -300,8 +308,9 @@ async def list_agents(
             description=agent.description,
             slug=agent.slug,
             model_id=agent.model_id,
-            model_name=agent.model.display_name if agent.model else None,
-            model_provider=agent.model.provider.value if agent.model else None,
+            local_model_id=agent.local_model_id,
+                model_name=agent.model.display_name if agent.model else (agent.local_model.name if agent.local_model else None),
+                model_provider=agent.model.provider.display_name if agent.model and getattr(agent.model, "provider", None) else ("local" if agent.local_model else None),
             api_key_id=agent.api_key_id,
             api_key_preview=agent.api_key.key_preview if agent.api_key else None,
             temperature=agent.temperature,
@@ -355,8 +364,9 @@ async def get_agent(
         description=agent.description,
         slug=agent.slug,
         model_id=agent.model_id,
-        model_name=agent.model.display_name if agent.model else None,
-        model_provider=agent.model.provider.value if agent.model else None,
+        local_model_id=agent.local_model_id,
+            model_name=agent.model.display_name if agent.model else (agent.local_model.name if agent.local_model else None),
+            model_provider=agent.model.provider.display_name if agent.model and getattr(agent.model, "provider", None) else ("local" if agent.local_model else None),
         api_key_id=agent.api_key_id,
         api_key_preview=agent.api_key.key_preview if agent.api_key else None,
         temperature=agent.temperature,
@@ -507,8 +517,9 @@ async def activate_agent(
             description=agent.description,
             slug=agent.slug,
             model_id=agent.model_id,
-            model_name=agent.model.display_name if agent.model else None,
-            model_provider=agent.model.provider.value if agent.model else None,
+            local_model_id=agent.local_model_id,
+            model_name=agent.model.display_name if agent.model else (agent.local_model.name if agent.local_model else None),
+            model_provider=agent.model.provider.display_name if agent.model and getattr(agent.model, "provider", None) else ("local" if agent.local_model else None),
             api_key_id=agent.api_key_id,
             api_key_preview=agent.api_key.key_preview if agent.api_key else None,
             temperature=agent.temperature,
@@ -549,7 +560,7 @@ async def check_agent_creation(
         raise HTTPException(status_code=404, detail="Model not found")
     
     has_key, keys = await AgentBuilderService.check_api_key_exists(
-        db, current_user.id, AgentModelProviderEnum(model.provider.value)
+        db, current_user.id, model.provider_id
     )
     
     can_create = not model.requires_api_key or has_key
@@ -559,12 +570,13 @@ async def check_agent_creation(
         can_create=can_create,
         has_api_key=has_key,
         model_name=model.display_name,
-        model_provider=model.provider.value,
+        model_provider=model.provider.display_name if getattr(model, "provider", None) else None,
         requires_api_key=model.requires_api_key,
         available_keys=[
             AgentApiKeyResponse(
                 id=k.id,
-                provider=AgentModelProviderEnum(k.provider.value),
+                provider_id=k.provider_id,
+                provider_name=k.provider.display_name if getattr(k, "provider", None) else None,
                 label=k.label,
                 key_preview=k.key_preview,
                 is_active=k.is_active,

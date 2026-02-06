@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import {
     LayoutDashboard, FolderKanban, CheckSquare, MessageSquare, StickyNote,
-    Timer, Bot, Users, Shield, Settings, LogOut
+    Timer, Bot, Users, Shield, Settings, LogOut, Cpu, HardDrive
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import './Sidebar.css';
@@ -46,6 +46,8 @@ export function Sidebar({ isOpen, mobileOpen, setMobileOpen }: SidebarProps) {
             items: [
                 { icon: Timer, label: 'Time Tracking', path: '/tracking' },
                 { icon: Bot, label: 'AI Agents', path: '/ai/agents', roles: ['ADMIN', 'Admin', 'AI_ENGINEER', 'SuperUser'] },
+                { icon: Cpu, label: 'AI Models', path: '/ai/models', roles: ['ADMIN', 'Admin', 'SuperUser', 'STAFF'] },
+                { icon: HardDrive, label: 'Local Models', path: '/ai/local-models', roles: ['ADMIN', 'Admin', 'SuperUser', 'STAFF'] },
             ]
         },
         {

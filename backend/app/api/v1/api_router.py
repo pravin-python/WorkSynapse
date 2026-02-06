@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.routers import users, auth, projects, tasks, chat, agents, webhooks, notes, worklogs, files, llm_keys, user_activity, accounts, roles, agent_builder
+from app.api.v1.routers import users, auth, projects, tasks, chat, agents, webhooks, notes, worklogs, files, llm_keys, user_activity, accounts, roles, agent_builder, local_models, agent_models
 from app.api.v1.endpoints import websockets
 
 api_router = APIRouter()
@@ -45,3 +45,9 @@ api_router.include_router(llm_keys.router, prefix="/llm", tags=["llm-keys"])
 
 # Agent Builder routes (Custom agent creation system)
 api_router.include_router(agent_builder.router, prefix="/agent-builder", tags=["agent-builder"])
+
+# Local Models routes (HuggingFace, Ollama, custom local LLMs)
+api_router.include_router(local_models.router, prefix="/local-models", tags=["local-models"])
+
+# Agent Models Registry routes (Admin management)
+api_router.include_router(agent_models.router, prefix="/agent-models", tags=["agent-models"])

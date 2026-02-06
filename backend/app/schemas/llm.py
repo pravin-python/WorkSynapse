@@ -6,7 +6,7 @@ Pydantic schemas for LLM providers, API keys, and AI agents.
 """
 
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field, field_validator
 import re
 
@@ -28,7 +28,7 @@ class LLMProviderBase(BaseModel):
 class LLMProviderCreate(LLMProviderBase):
     """Schema for creating a provider."""
     type: str = "custom"
-    available_models: Optional[List[str]] = None
+    config_schema: Optional[Dict[str, Any]] = None
 
 
 class LLMProviderUpdate(BaseModel):
@@ -37,7 +37,7 @@ class LLMProviderUpdate(BaseModel):
     description: Optional[str] = None
     base_url: Optional[str] = None
     is_active: Optional[bool] = None
-    available_models: Optional[List[str]] = None
+    config_schema: Optional[Dict[str, Any]] = None
 
 
 class LLMProviderResponse(LLMProviderBase):
@@ -45,7 +45,8 @@ class LLMProviderResponse(LLMProviderBase):
     id: int
     type: str
     is_active: bool
-    available_models: Optional[List[str]] = None
+    config_schema: Optional[Dict[str, Any]] = None
+    config_schema: Optional[Dict[str, Any]] = None
     created_at: datetime
     
     class Config:
@@ -71,6 +72,7 @@ class LLMApiKeyCreate(LLMApiKeyBase):
     """Schema for creating an API key."""
     provider_id: int
     api_key: str = Field(..., min_length=10)
+    extra_params: Optional[Dict[str, Any]] = None
     
     @field_validator('api_key')
     @classmethod
@@ -85,6 +87,7 @@ class LLMApiKeyUpdate(BaseModel):
     """Schema for updating an API key."""
     label: Optional[str] = None
     api_key: Optional[str] = None  # If provided, will be re-encrypted
+    extra_params: Optional[Dict[str, Any]] = None
     is_active: Optional[bool] = None
 
 
@@ -94,6 +97,7 @@ class LLMApiKeyResponse(LLMApiKeyBase):
     provider_id: int
     provider_name: Optional[str] = None
     key_preview: str  # Masked key like "sk-ab...xyz"
+    extra_params: Optional[Dict[str, Any]] = None
     is_active: bool
     is_valid: bool
     last_used_at: Optional[datetime] = None

@@ -24,8 +24,9 @@ class FernetKeyManager:
     """
     Manages Fernet encryption for LLM API keys.
     
-    Uses PBKDF2 to derive a Fernet key from the application's SECRET_KEY,
-    ensuring consistent encryption across app restarts.
+    Uses FERNET_SECRET_KEY if provided, otherwise derives a Fernet key 
+    from the application's SECRET_KEY using PBKDF2.
+    This ensures consistent encryption across app restarts.
     """
     
     _fernet: Optional[Fernet] = None
@@ -35,17 +36,27 @@ class FernetKeyManager:
     def _get_fernet(cls) -> Fernet:
         """Get or create the Fernet instance."""
         if cls._fernet is None:
-            # Derive a Fernet-compatible key from SECRET_KEY
-            kdf = PBKDF2HMAC(
-                algorithm=hashes.SHA256(),
-                length=32,
-                salt=cls._salt,
-                iterations=100_000,
-            )
-            key = base64.urlsafe_b64encode(
-                kdf.derive(settings.SECRET_KEY.encode())
-            )
-            cls._fernet = Fernet(key)
+            # Use dedicated FERNET_SECRET_KEY if provided
+            if settings.FERNET_SECRET_KEY:
+                try:
+                    cls._fernet = Fernet(settings.FERNET_SECRET_KEY.encode())
+                except Exception:
+                    raise KeyEncryptionError(
+                        "Invalid FERNET_SECRET_KEY. Generate one with: "
+                        "python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
+                    )
+            else:
+                # Derive a Fernet-compatible key from SECRET_KEY
+                kdf = PBKDF2HMAC(
+                    algorithm=hashes.SHA256(),
+                    length=32,
+                    salt=cls._salt,
+                    iterations=100_000,
+                )
+                key = base64.urlsafe_b64encode(
+                    kdf.derive(settings.SECRET_KEY.encode())
+                )
+                cls._fernet = Fernet(key)
         return cls._fernet
     
     @classmethod
@@ -146,6 +157,11 @@ class FernetKeyManager:
                 "prefix": None,
                 "min_length": 30,
                 "error": None
+            },
+            "groq": {
+                "prefix": "gsk_",
+                "min_length": 20,
+                "error": "Groq keys should start with 'gsk_'"
             },
         }
         

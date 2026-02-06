@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     # Service-to-service authentication
     SERVICE_API_KEY: str  # Required - must be set in environment
     
+    # Encryption key for LLM API keys (optional - derives from SECRET_KEY if not set)
+    FERNET_SECRET_KEY: Optional[str] = None
+    
     # ===========================================
     # DATABASE (Separate components for flexibility)
     # ===========================================

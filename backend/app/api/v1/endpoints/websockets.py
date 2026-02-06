@@ -213,3 +213,110 @@ async def websocket_endpoint(
             "timestamp": time.time()
         })
         logger.info(f"User {user_info['user_id']} disconnected from channel {channel_id}")
+
+
+# ============================================
+# MODEL DOWNLOAD PROGRESS WEBSOCKET
+# ============================================
+
+class ModelDownloadConnectionManager:
+    """WebSocket manager for model download progress."""
+    
+    def __init__(self):
+        self.active_connections: Dict[int, List[WebSocket]] = {}  # model_id -> [websockets]
+    
+    async def connect(self, websocket: WebSocket, model_id: int):
+        """Accept connection for model progress."""
+        await websocket.accept()
+        if model_id not in self.active_connections:
+            self.active_connections[model_id] = []
+        self.active_connections[model_id].append(websocket)
+    
+    def disconnect(self, websocket: WebSocket, model_id: int):
+        """Remove connection."""
+        if model_id in self.active_connections:
+            if websocket in self.active_connections[model_id]:
+                self.active_connections[model_id].remove(websocket)
+            if not self.active_connections[model_id]:
+                del self.active_connections[model_id]
+    
+    async def broadcast_progress(self, model_id: int, data: dict):
+        """Broadcast progress to all watchers of a model."""
+        if model_id not in self.active_connections:
+            return
+        
+        message = json.dumps(data)
+        dead_connections = []
+        
+        for ws in self.active_connections[model_id]:
+            try:
+                await ws.send_text(message)
+            except Exception:
+                dead_connections.append(ws)
+        
+        # Clean up dead connections
+        for ws in dead_connections:
+            self.disconnect(ws, model_id)
+
+
+download_manager = ModelDownloadConnectionManager()
+
+
+@router.websocket("/ws/model-download/{model_id}")
+async def model_download_websocket(
+    websocket: WebSocket,
+    model_id: int,
+    token: str = Query(None),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    WebSocket endpoint for real-time model download progress.
+    
+    Clients connect to receive progress updates for a specific model download.
+    Updates are pushed by the Celery worker via Redis pub/sub.
+    """
+    # Basic auth check (optional for download progress)
+    if token:
+        user_info = await manager.authenticate(websocket, token, db)
+        if not user_info:
+            return
+    else:
+        await websocket.accept()
+    
+    await download_manager.connect(websocket, model_id)
+    
+    # Also subscribe to Redis channel for cross-process updates
+    try:
+        import redis.asyncio as aioredis
+        from app.core.config import settings
+        
+        redis_client = aioredis.from_url(settings.REDIS_URL)
+        pubsub = redis_client.pubsub()
+        
+        channel = f"ws:model-download-{model_id}"
+        await pubsub.subscribe(channel)
+        
+        # Listen for updates from Celery worker
+        async for message in pubsub.listen():
+            if message["type"] == "message":
+                try:
+                    data = json.loads(message["data"])
+                    await websocket.send_text(json.dumps(data))
+                    
+                    # Close on completion or failure
+                    if data.get("status") in ["ready", "failed", "cancelled"]:
+                        await pubsub.unsubscribe(channel)
+                        break
+                except Exception:
+                    pass
+                    
+    except WebSocketDisconnect:
+        download_manager.disconnect(websocket, model_id)
+    except Exception as e:
+        logger.error(f"Model download WebSocket error: {e}")
+    finally:
+        download_manager.disconnect(websocket, model_id)
+        try:
+            await redis_client.close()
+        except Exception:
+            pass

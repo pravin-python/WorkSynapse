@@ -17,16 +17,6 @@ import re
 # ENUMS (mirroring model enums)
 # =============================================================================
 
-class AgentModelProviderEnum(str, Enum):
-    OPENAI = "openai"
-    ANTHROPIC = "anthropic"
-    GOOGLE = "google"
-    GEMINI = "gemini"
-    OLLAMA = "ollama"
-    HUGGINGFACE = "huggingface"
-    AZURE_OPENAI = "azure_openai"
-    CUSTOM = "custom"
-
 
 class CustomAgentStatusEnum(str, Enum):
     DRAFT = "draft"
@@ -68,12 +58,12 @@ class AgentModelBase(BaseModel):
     """Base schema for AI models."""
     name: str = Field(..., min_length=2, max_length=100)
     display_name: str = Field(..., min_length=2, max_length=200)
-    provider: AgentModelProviderEnum
     description: Optional[str] = None
 
 
 class AgentModelCreate(AgentModelBase):
     """Schema for creating an AI model."""
+    provider_id: int
     requires_api_key: bool = True
     api_key_prefix: Optional[str] = None
     base_url: Optional[str] = None
@@ -94,11 +84,15 @@ class AgentModelUpdate(BaseModel):
     is_deprecated: Optional[bool] = None
     input_price_per_million: Optional[float] = Field(default=None, ge=0)
     output_price_per_million: Optional[float] = Field(default=None, ge=0)
+    context_window: Optional[int] = Field(default=None, ge=1024)
+    max_output_tokens: Optional[int] = Field(default=None, ge=100)
 
 
 class AgentModelResponse(AgentModelBase):
     """Schema for model response."""
     id: int
+    provider_id: int
+    provider: Optional[Any] = None # Or specialized schema if imported
     requires_api_key: bool
     api_key_prefix: Optional[str] = None
     context_window: int
@@ -128,7 +122,7 @@ class AgentModelWithKeyStatus(AgentModelResponse):
 
 class AgentApiKeyBase(BaseModel):
     """Base schema for API key."""
-    provider: AgentModelProviderEnum
+    provider_id: int
     label: str = Field(default="default", max_length=100)
 
 
@@ -161,6 +155,7 @@ class AgentApiKeyResponse(AgentApiKeyBase):
     last_used_at: Optional[datetime] = None
     usage_count: int
     created_at: datetime
+    provider_name: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -168,7 +163,7 @@ class AgentApiKeyResponse(AgentApiKeyBase):
 
 class ApiKeyValidationRequest(BaseModel):
     """Schema for validating an API key."""
-    provider: AgentModelProviderEnum
+    provider_id: int
     api_key: str
     model_name: Optional[str] = None
 
@@ -332,7 +327,8 @@ class CustomAgentBase(BaseModel):
 class CustomAgentCreate(CustomAgentBase):
     """Schema for creating a custom agent."""
     # Model configuration
-    model_id: int
+    model_id: Optional[int] = None
+    local_model_id: Optional[int] = None
     api_key_id: Optional[int] = None
     
     # Model parameters
@@ -374,6 +370,14 @@ class CustomAgentCreate(CustomAgentBase):
             if not re.match(r'^#[0-9A-Fa-f]{6}$', v):
                 raise ValueError('Color must be a valid hex color (e.g., #FF5733)')
         return v
+    
+    @model_validator(mode='after')
+    def validate_model_selection(self) -> 'CustomAgentCreate':
+        if not self.model_id and not self.local_model_id:
+            raise ValueError('Either model_id or local_model_id must be provided')
+        if self.model_id and self.local_model_id:
+            raise ValueError('Cannot specify both model_id and local_model_id')
+        return self
 
 
 class CustomAgentUpdate(BaseModel):
@@ -381,6 +385,7 @@ class CustomAgentUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     model_id: Optional[int] = None
+    local_model_id: Optional[int] = None
     api_key_id: Optional[int] = None
     temperature: Optional[float] = Field(default=None, ge=0, le=2)
     max_tokens: Optional[int] = Field(default=None, ge=100, le=128000)
@@ -401,7 +406,8 @@ class CustomAgentResponse(CustomAgentBase):
     """Schema for agent response."""
     id: int
     slug: str
-    model_id: int
+    model_id: Optional[int] = None
+    local_model_id: Optional[int] = None
     model_name: Optional[str] = None
     model_provider: Optional[str] = None
     api_key_id: Optional[int] = None

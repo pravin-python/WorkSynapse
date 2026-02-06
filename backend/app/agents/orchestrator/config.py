@@ -23,6 +23,16 @@ class LLMProviderConfig(BaseModel):
     max_retries: int = 3
     temperature: float = 0.7
     max_tokens: int = 4096
+    
+    # Azure OpenAI specific
+    azure_endpoint: Optional[str] = None
+    deployment_name: Optional[str] = None
+    api_version: Optional[str] = None
+    
+    # AWS Bedrock specific
+    aws_access_key_id: Optional[str] = None
+    aws_secret_access_key: Optional[str] = None
+    region_name: Optional[str] = None
 
 
 class MemoryConfig(BaseModel):
@@ -121,6 +131,29 @@ class OrchestratorConfig(BaseSettings):
     huggingface_default_model: str = "meta-llama/Llama-3.1-8B-Instruct"
     huggingface_endpoint_url: Optional[str] = None
 
+    # Groq
+    groq_api_key: Optional[str] = Field(default=None, alias="GROQ_API_KEY")
+    groq_default_model: str = "llama3-70b-8192"
+    groq_base_url: str = "https://api.groq.com/openai/v1"
+
+    # Azure OpenAI
+    azure_openai_api_key: Optional[str] = Field(default=None, alias="AZURE_OPENAI_API_KEY")
+    azure_openai_endpoint: Optional[str] = Field(default=None, alias="AZURE_OPENAI_ENDPOINT")
+    azure_openai_deployment: Optional[str] = Field(default=None, alias="AZURE_OPENAI_DEPLOYMENT_NAME")
+    azure_openai_api_version: str = Field(default="2023-05-15", alias="AZURE_OPENAI_API_VERSION")
+    azure_openai_default_model: str = "gpt-4"
+
+    # AWS Bedrock
+    aws_access_key_id: Optional[str] = Field(default=None, alias="AWS_ACCESS_KEY_ID")
+    aws_secret_access_key: Optional[str] = Field(default=None, alias="AWS_SECRET_ACCESS_KEY")
+    aws_region_name: str = Field(default="us-east-1", alias="AWS_DEFAULT_REGION")
+    bedrock_default_model: str = "anthropic.claude-3-sonnet-20240229-v1:0"
+
+    # DeepSeek
+    deepseek_api_key: Optional[str] = Field(default=None, alias="DEEPSEEK_API_KEY")
+    deepseek_base_url: str = "https://api.deepseek.com/v1"
+    deepseek_default_model: str = "deepseek-chat"
+
     # ========================
     # MEMORY
     # ========================
@@ -205,6 +238,46 @@ class OrchestratorConfig(BaseSettings):
                     "microsoft/Phi-3-mini-4k-instruct",
                 ],
             ),
+            "groq": LLMProviderConfig(
+                name="groq",
+                api_key=self.groq_api_key,
+                base_url=self.groq_base_url,
+                default_model=self.groq_default_model,
+                available_models=[
+                    "llama3-70b-8192",
+                    "mixtral-8x7b-32768",
+                    "gemma2-9b-it",
+                    "gemma-7b-it",
+                ],
+            ),
+            "azure_openai": LLMProviderConfig(
+                name="azure_openai",
+                api_key=self.azure_openai_api_key,
+                default_model=self.azure_openai_default_model,
+                azure_endpoint=self.azure_openai_endpoint,
+                deployment_name=self.azure_openai_deployment,
+                api_version=self.azure_openai_api_version,
+                available_models=["gpt-4", "gpt-35-turbo"],
+            ),
+            "aws_bedrock": LLMProviderConfig(
+                name="aws_bedrock",
+                default_model=self.bedrock_default_model,
+                aws_access_key_id=self.aws_access_key_id,
+                aws_secret_access_key=self.aws_secret_access_key,
+                region_name=self.aws_region_name,
+                available_models=[
+                    "anthropic.claude-3-sonnet-20240229-v1:0",
+                    "anthropic.claude-3-haiku-20240307-v1:0",
+                    "amazon.titan-text-express-v1"
+                ],
+            ),
+            "deepseek": LLMProviderConfig(
+                name="deepseek",
+                api_key=self.deepseek_api_key,
+                base_url=self.deepseek_base_url,
+                default_model=self.deepseek_default_model,
+                available_models=["deepseek-chat", "deepseek-coder"],
+            ),
         }
         return providers.get(provider)
 
@@ -220,6 +293,14 @@ class OrchestratorConfig(BaseSettings):
             available.append("claude")
         if self.huggingface_api_key:
             available.append("huggingface")
+        if self.groq_api_key:
+            available.append("groq")
+        if self.azure_openai_api_key:
+            available.append("azure_openai")
+        if self.aws_access_key_id and self.aws_secret_access_key:
+            available.append("aws_bedrock")
+        if self.deepseek_api_key:
+            available.append("deepseek")
 
         return available
 

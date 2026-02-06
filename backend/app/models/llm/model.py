@@ -30,6 +30,9 @@ class LLMKeyProviderType(str, Enum):
     COHERE = "cohere"
     OLLAMA = "ollama"
     AZURE_OPENAI = "azure_openai"
+    GROQ = "groq"
+    AWS_BEDROCK = "aws_bedrock"
+    DEEPSEEK = "deepseek"
     CUSTOM = "custom"
 
 
@@ -56,10 +59,15 @@ class LLMKeyProvider(Base, AuditMixin):
     requires_api_key: Mapped[bool] = mapped_column(Boolean, default=True)
     icon: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)  # Icon name
     
-    # Available models for this provider (JSON list)
-    available_models: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Configuration schema for extra parameters (JSON)
+    config_schema: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
     # Relationships
+    models: Mapped[List["AgentModel"]] = relationship(
+        "AgentModel",
+        back_populates="provider",
+        cascade="all, delete-orphan"
+    )
     api_keys: Mapped[List["LLMApiKey"]] = relationship(
         "LLMApiKey", 
         back_populates="provider",
@@ -103,6 +111,9 @@ class LLMApiKey(Base, AuditMixin):
     label: Mapped[str] = mapped_column(String(100), nullable=False, default="default")
     encrypted_key: Mapped[str] = mapped_column(Text, nullable=False)
     key_preview: Mapped[str] = mapped_column(String(20), nullable=False)  # Masked preview
+    
+    # Extra parameters (JSON) for things like region, endpoint, etc.
+    extra_params: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
     # Metadata
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)

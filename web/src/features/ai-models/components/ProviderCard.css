@@ -1,0 +1,172 @@
+/**
+ * Provider Card Styles
+ * ====================
+ * Theme-compatible styles using CSS custom properties
+ */
+
+.ai-provider-card {
+    background: hsl(var(--card-bg));
+    border: 1px solid hsl(var(--color-border));
+    border-radius: var(--radius-xl);
+    padding: var(--space-lg);
+    transition: all var(--transition-base);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    box-shadow: var(--shadow-sm);
+}
+
+.ai-provider-card:hover {
+    border-color: hsl(var(--color-primary) / 0.5);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.ai-provider-card.has-key {
+    border-color: hsl(var(--color-success) / 0.3);
+    background: linear-gradient(135deg,
+            hsl(var(--color-success) / 0.05) 0%,
+            hsl(var(--card-bg)) 50%);
+}
+
+.provider-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.provider-icon {
+    font-size: 2rem;
+    line-height: 1;
+}
+
+.provider-status {
+    display: flex;
+    align-items: center;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.status-badge.success {
+    background: hsl(var(--color-success) / 0.15);
+    color: hsl(var(--color-success));
+}
+
+.status-badge.warning {
+    background: hsl(var(--color-warning) / 0.15);
+    color: hsl(var(--color-warning));
+}
+
+.status-badge.info {
+    background: hsl(var(--color-info) / 0.15);
+    color: hsl(var(--color-info));
+}
+
+.status-badge.error {
+    background: hsl(var(--color-error) / 0.15);
+    color: hsl(var(--color-error));
+}
+
+.provider-name {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: hsl(var(--color-text));
+    margin: 0;
+}
+
+.provider-description {
+    font-size: 0.875rem;
+    color: hsl(var(--color-text-secondary));
+    margin: 0;
+    line-height: 1.5;
+}
+
+.provider-models {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: auto;
+    padding-top: var(--space-sm);
+}
+
+.model-tag {
+    background: hsl(var(--color-primary) / 0.15);
+    color: hsl(var(--color-primary));
+    padding: 3px 8px;
+    border-radius: var(--radius-md);
+    font-size: 0.7rem;
+    font-family: var(--font-mono);
+}
+
+.model-more {
+    color: hsl(var(--color-text-muted));
+    font-size: 0.75rem;
+    padding: 3px 8px;
+}
+
+.provider-actions {
+    display: flex;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+    padding-top: var(--space-sm);
+    border-top: 1px solid hsl(var(--color-border));
+}
+
+.provider-actions .btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.provider-actions .btn-secondary {
+    background: hsl(var(--color-surface));
+    border: 1px solid hsl(var(--color-border));
+    color: hsl(var(--color-text));
+}
+
+.provider-actions .btn-secondary:hover {
+    background: hsl(var(--color-surface-hover));
+    border-color: hsl(var(--color-border-hover));
+}
+
+.provider-actions .btn-sm {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 0.8rem;
+}
+
+.provider-actions .btn-icon {
+    flex: 0;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: hsl(var(--color-text-secondary));
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.provider-actions .btn-icon:hover {
+    background: hsl(var(--color-surface-hover));
+    color: hsl(var(--color-primary));
+}

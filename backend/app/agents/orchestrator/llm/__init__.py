@@ -12,6 +12,7 @@ from app.agents.orchestrator.llm.providers.ollama_provider import OllamaProvider
 from app.agents.orchestrator.llm.providers.gemini_provider import GeminiProvider
 from app.agents.orchestrator.llm.providers.claude_provider import ClaudeProvider
 from app.agents.orchestrator.llm.providers.huggingface_provider import HuggingFaceProvider
+from app.agents.orchestrator.llm.providers.groq_provider import GroqProvider
 
 __all__ = [
     "LLMRouter",
@@ -23,4 +24,5 @@ __all__ = [
     "GeminiProvider",
     "ClaudeProvider",
     "HuggingFaceProvider",
+    "GroqProvider",
 ]

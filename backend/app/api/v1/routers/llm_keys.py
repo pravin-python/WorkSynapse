@@ -6,6 +6,7 @@ API endpoints for managing LLM providers, API keys, and AI agents.
 """
 
 from typing import List, Optional
+import json
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,8 +21,10 @@ from app.schemas.llm import (
     AIAgentCreateCheck, AIAgentCreateCheckResponse,
     LLMKeyStats, AgentStats
 )
-from app.services.llm_key_service import LLMKeyService, LLMKeyServiceError
-from app.middleware.security import require_permission, PermissionAction
+from app.schemas.agent_builder import (
+    AgentModelCreate, AgentModelUpdate, AgentModelResponse
+)
+from app.services.agent_builder_service import AgentBuilderService
 
 
 router = APIRouter()
@@ -60,7 +63,7 @@ async def list_providers(
             requires_api_key=provider.requires_api_key,
             icon=provider.icon,
             is_active=provider.is_active,
-            available_models=eval(provider.available_models) if provider.available_models else [],
+            config_schema=json.loads(provider.config_schema) if provider.config_schema else None,
             created_at=provider.created_at,
             has_api_key=len(keys) > 0,
             key_count=len(keys)
@@ -80,6 +83,22 @@ async def get_provider(
     if not provider:
         raise HTTPException(status_code=404, detail="Provider not found")
     return provider
+
+
+@router.get("/providers/{provider_id}/models", response_model=List[AgentModelResponse])
+async def list_provider_models(
+    provider_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """List models for a specific provider."""
+    # Ensure provider exists
+    provider = await LLMKeyService.get_provider(db, provider_id)
+    if not provider:
+        raise HTTPException(status_code=404, detail="Provider not found")
+        
+    models = await AgentBuilderService.get_models(db, provider_id=provider_id)
+    return models
 
 
 @router.post("/providers/seed")

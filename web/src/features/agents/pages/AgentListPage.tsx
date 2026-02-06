@@ -95,7 +95,7 @@ export const AgentListPage: React.FC = () => {
                 <div className="header-content">
                     <h1>
                         <span className="header-icon">🤖</span>
-                        Custom Agents
+                        AI Agents
                     </h1>
                     <p className="header-description">
                         Create and manage your AI agents with custom models, tools, and integrations.

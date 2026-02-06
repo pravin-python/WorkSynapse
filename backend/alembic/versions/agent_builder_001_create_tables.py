@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'agent_builder_001'
-down_revision = None  # Update this to point to your latest migration
+down_revision = 'd41a367fd9ac'  # Updated to point to previous head
 branch_labels = None
 depends_on = None
 

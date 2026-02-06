@@ -11,7 +11,8 @@ celery_app = Celery(
     include=[
         "app.worker.tasks.agents",
         "app.worker.tasks.notifications",
-        "app.worker.tasks.analytics"
+        "app.worker.tasks.analytics",
+        "app.worker.tasks.download_model"
     ]
 )
 
@@ -38,6 +39,7 @@ celery_app.conf.update(
         "app.worker.tasks.agents.*": {"queue": "agents"},
         "app.worker.tasks.notifications.*": {"queue": "notifications"},
         "app.worker.tasks.analytics.*": {"queue": "analytics"},
+        "app.worker.tasks.download_model.*": {"queue": "downloads"},
     },
     
     # Beat schedule for periodic tasks

@@ -129,7 +129,6 @@ from app.models.llm.model import (
 
 # Agent Builder Models (Custom Agent Creation)
 from app.models.agent_builder.model import (
-    AgentModelProvider,
     AgentToolType,
     AgentConnectionType,
     CustomAgentStatus,
@@ -139,6 +138,15 @@ from app.models.agent_builder.model import (
     AgentToolConfig,
     AgentConnection,
     AgentMCPServer,
+)
+
+# Local AI Models
+from app.models.local_models.model import (
+    LocalModel,
+    ModelDownloadLog,
+    ModelSource,
+    ModelStatus,
+    ModelType,
 )
 
 
@@ -243,7 +251,6 @@ __all__ = [
     "SecurityAuditLog",
     
     # Agent Builder
-    "AgentModelProvider",
     "AgentToolType",
     "AgentConnectionType",
     "CustomAgentStatus",
@@ -253,4 +260,12 @@ __all__ = [
     "AgentToolConfig",
     "AgentConnection",
     "AgentMCPServer",
+    "AgentMCPServer",
+
+    # Local Models
+    "LocalModel",
+    "ModelDownloadLog",
+    "ModelSource",
+    "ModelStatus",
+    "ModelType",
 ]

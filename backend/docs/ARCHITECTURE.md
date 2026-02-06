@@ -393,6 +393,7 @@ LOG_LEVEL=INFO
 
    python manage.py create-admin -e admin2@example.com -u admin2 -p Admin@123 --superuser
    uvicorn app.main:app --port 8000 --reload
+   celery -A app.core.celery_app worker --loglevel=info 
    ```
 
 2. **Create API Routers**
