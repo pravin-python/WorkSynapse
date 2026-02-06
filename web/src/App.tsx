@@ -39,12 +39,15 @@ const RoleCreatePage = lazy(() => import('./features/roles/pages/RoleCreatePage'
 const RoleEditPage = lazy(() => import('./features/roles/pages/RoleEditPage').then(module => ({ default: module.RoleEditPage })));
 
 // AI pages
-const AIAgentsPage = lazy(() => import('./pages/ai/AgentsPage'));
 const AISessionsPage = lazy(() => import('./pages/ai/SessionsPage'));
 
 // LLM Key Management pages
 const LLMKeysPage = lazy(() => import('./pages/llm/LLMKeysPage'));
 const CreateAgentPage = lazy(() => import('./pages/llm/CreateAgentPage'));
+
+// Agent Builder pages
+const AgentBuilderListPage = lazy(() => import('./features/agents/pages/AgentListPage'));
+const AgentBuilderFormPage = lazy(() => import('./features/agents/components/AgentBuilderForm'));
 
 // Loading fallback
 function LoadingFallback() {
@@ -178,7 +181,9 @@ function AppRoutes() {
 
             {/* AI Routes */}
             <Route element={<ProtectedRoute roles={['ADMIN', 'AI_ENGINEER']}><ProtectedLayout /></ProtectedRoute>}>
-                <Route path="/ai/agents" element={<AIAgentsPage />} />
+                <Route path="/ai/agents" element={<AgentBuilderListPage />} />
+                <Route path="/ai/agents/create" element={<AgentBuilderFormPage />} />
+                <Route path="/ai/agents/:agentId/edit" element={<AgentBuilderFormPage />} />
                 <Route path="/ai/sessions" element={<AISessionsPage />} />
             </Route>
 

@@ -166,7 +166,7 @@ class CreateAdminCommand(BaseCommand):
             self.output.success(f"Created role: {role_name}")
         
         # Create user with hashed password
-        hashed_password = user_service.hash_password(password)
+        hashed_password = user_service.get_password_hash(password)
         
         new_user = User(
             email=email.lower().strip(),

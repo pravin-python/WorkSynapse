@@ -127,6 +127,20 @@ from app.models.llm.model import (
     UserAgentSession,
 )
 
+# Agent Builder Models (Custom Agent Creation)
+from app.models.agent_builder.model import (
+    AgentModelProvider,
+    AgentToolType,
+    AgentConnectionType,
+    CustomAgentStatus,
+    AgentModel,
+    AgentApiKey,
+    CustomAgent,
+    AgentToolConfig,
+    AgentConnection,
+    AgentMCPServer,
+)
+
 
 # All models for Alembic autogenerate
 __all__ = [
@@ -227,4 +241,16 @@ __all__ = [
     "IdlePeriodType",
     "ProductivitySummary",
     "SecurityAuditLog",
+    
+    # Agent Builder
+    "AgentModelProvider",
+    "AgentToolType",
+    "AgentConnectionType",
+    "CustomAgentStatus",
+    "AgentModel",
+    "AgentApiKey",
+    "CustomAgent",
+    "AgentToolConfig",
+    "AgentConnection",
+    "AgentMCPServer",
 ]
