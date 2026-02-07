@@ -11,9 +11,10 @@ interface SearchInputProps {
     className?: string;
     disabled?: boolean;
     autoFocus?: boolean;
+    endAdornment?: React.ReactNode;
 }
 
-export function SearchInput({
+export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(({
     value = '',
     onChange,
     onSearch,
@@ -21,12 +22,17 @@ export function SearchInput({
     debounceMs = 300,
     className = "",
     disabled = false,
-    autoFocus = false
-}: SearchInputProps) {
+    autoFocus = false,
+    endAdornment
+}, ref) => {
     const [localValue, setLocalValue] = useState(value);
     const [isFocused, setIsFocused] = useState(false);
-    const inputRef = useRef<HTMLInputElement>(null);
+    const internalInputRef = useRef<HTMLInputElement>(null);
     const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Use internal ref if external ref is not provided, or merge them if necessary
+    // Simpler approach: use useImperativeHandle to expose the internal ref to the parent
+    React.useImperativeHandle(ref, () => internalInputRef.current as HTMLInputElement);
 
     // Sync specific value prop changes to local state
     useEffect(() => {
@@ -59,7 +65,7 @@ export function SearchInput({
         setLocalValue('');
         if (onChange) onChange('');
         if (onSearch) onSearch('');
-        inputRef.current?.focus();
+        internalInputRef.current?.focus();
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -78,7 +84,7 @@ export function SearchInput({
             <Search size={18} className="search-icon-svg" />
 
             <input
-                ref={inputRef}
+                ref={internalInputRef}
                 type="text"
                 className={`search-input-field ${isFocused ? 'focused' : ''} ${disabled ? 'disabled' : ''}`}
                 value={localValue}
@@ -104,6 +110,14 @@ export function SearchInput({
                     <X size={14} />
                 </button>
             )}
+
+            {endAdornment && !localValue && (
+                <div className="search-end-adornment">
+                    {endAdornment}
+                </div>
+            )}
         </div>
     );
-}
+});
+
+SearchInput.displayName = 'SearchInput';

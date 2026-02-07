@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Bell, Menu, User, Settings, LogOut, ChevronDown, PanelLeft } from 'lucide-react';
+import { Bell, Menu, User, Settings, LogOut, ChevronDown, PanelLeft } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { SearchInput } from '../ui/SearchInput';
 import './Header.css';
 
 interface HeaderProps {
@@ -15,6 +16,7 @@ export function Header({ onMobileMenuClick, onSidebarToggle, isSidebarOpen }: He
     const navigate = useNavigate();
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const searchInputRef = useRef<HTMLInputElement>(null);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -50,6 +52,22 @@ export function Header({ onMobileMenuClick, onSidebarToggle, isSidebarOpen }: He
         };
     }, [isProfileOpen]);
 
+    // Handle Global Keyboard Shortcuts
+    useEffect(() => {
+        function handleGlobalKeyDown(event: KeyboardEvent) {
+            // Ctrl + R to focus search
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'r') {
+                event.preventDefault(); // Prevent browser refresh
+                searchInputRef.current?.focus();
+            }
+        }
+
+        document.addEventListener('keydown', handleGlobalKeyDown);
+        return () => {
+            document.removeEventListener('keydown', handleGlobalKeyDown);
+        };
+    }, []);
+
     const handleLogout = async () => {
         await logout();
         navigate('/login');
@@ -75,15 +93,12 @@ export function Header({ onMobileMenuClick, onSidebarToggle, isSidebarOpen }: He
                     <PanelLeft size={20} />
                 </button>
 
-                <div className="global-search">
-                    <Search size={16} className="search-icon" />
-                    <input
-                        type="text"
-                        placeholder="Search..."
-                        aria-label="Global Search"
-                    />
-                    <div className="kbd-shortcut">⌘K</div>
-                </div>
+                <SearchInput
+                    ref={searchInputRef}
+                    className="global-search"
+                    placeholder="Search..."
+                    endAdornment={<div className="kbd-shortcut">Ctrl + R</div>}
+                />
             </div>
 
             <div className="header-right">
