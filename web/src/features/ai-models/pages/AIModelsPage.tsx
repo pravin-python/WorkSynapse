@@ -5,7 +5,7 @@
  * Comprehensive page for managing AI model providers and encrypted API keys.
  * Admin/Staff only access for provider management.
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
     Key, Shield, RefreshCw, Check,
     Database, Cpu, AlertTriangle
@@ -57,8 +57,13 @@ export function AIModelsPage() {
         }
     }, []);
 
+    const mounted = useRef(false);
+
     useEffect(() => {
-        loadData();
+        if (!mounted.current) {
+            mounted.current = true;
+            loadData();
+        }
     }, [loadData]);
 
     // Handlers

@@ -53,6 +53,10 @@ const AgentBuilderFormPage = lazy(() => import('./features/agents/components/Age
 const AIModelsPage = lazy(() => import('./features/ai-models/pages/AIModelsPage'));
 const LocalModelsPage = lazy(() => import('./features/local-models/pages/LocalModelsPage').then(module => ({ default: module.LocalModelsPage })));
 
+// RAG & Prompts
+const PromptTemplatesPage = lazy(() => import('./pages/admin/PromptTemplatesPage'));
+const KnowledgeBasePage = lazy(() => import('./pages/ai/KnowledgeBasePage'));
+
 // Loading fallback
 function LoadingFallback() {
     return (
@@ -181,6 +185,7 @@ function AppRoutes() {
                 <Route path="/admin/roles" element={<AdminRolesPage />} />
                 <Route path="/admin/roles/new" element={<RoleCreatePage />} />
                 <Route path="/admin/roles/:id/edit" element={<RoleEditPage />} />
+                <Route path="/admin/prompts" element={<PromptTemplatesPage />} />
             </Route>
 
             {/* AI Routes */}
@@ -189,6 +194,7 @@ function AppRoutes() {
                 <Route path="/ai/agents/create" element={<AgentBuilderFormPage />} />
                 <Route path="/ai/agents/:agentId/edit" element={<AgentBuilderFormPage />} />
                 <Route path="/ai/sessions" element={<AISessionsPage />} />
+                <Route path="/ai/knowledge" element={<KnowledgeBasePage />} />
             </Route>
 
             {/* LLM Key Management Routes - All authenticated users */}

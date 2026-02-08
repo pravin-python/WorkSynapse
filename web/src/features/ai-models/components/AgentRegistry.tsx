@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
     Plus, RefreshCw, Filter, LayoutGrid
 } from 'lucide-react';
@@ -48,11 +48,19 @@ export function AgentRegistry() {
         }
     }, [debouncedSearch, filterProviderId]);
 
+    const mounted = useRef(false);
+
     // Initial load and updates on search/filter change
     useEffect(() => {
-        loadModels();
-        loadProviders();
-    }, [loadModels, loadProviders]);
+        if (!mounted.current) {
+            mounted.current = true;
+            loadModels();
+            loadProviders();
+        } else {
+            // If dependencies change (debouncedSearch, filterProviderId), reload models
+            loadModels();
+        }
+    }, [debouncedSearch, filterProviderId, loadModels, loadProviders]);
 
     const handleCreate = async (data: any) => {
         await createAgentModel(data as AgentModelCreate);

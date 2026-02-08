@@ -3,18 +3,19 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Bell, Menu, User, Settings, LogOut, ChevronDown, PanelLeft } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { SearchInput } from '../ui/SearchInput';
+import { MegaMenu } from './MegaMenu';
 import './Header.css';
 
 interface HeaderProps {
-    onMobileMenuClick: () => void;
     onSidebarToggle?: () => void;
     isSidebarOpen?: boolean;
 }
 
-export function Header({ onMobileMenuClick, onSidebarToggle, isSidebarOpen }: HeaderProps) {
+export function Header({ onSidebarToggle, isSidebarOpen }: HeaderProps) {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -77,21 +78,19 @@ export function Header({ onMobileMenuClick, onSidebarToggle, isSidebarOpen }: He
         <header className="app-header">
             <div className="header-left">
                 <button
-                    className="mobile-menu-trigger"
-                    onClick={onMobileMenuClick}
+                    className={`menu-trigger ${isMegaMenuOpen ? 'active' : ''}`}
+                    onClick={() => setIsMegaMenuOpen(!isMegaMenuOpen)}
                     aria-label="Open menu"
                 >
                     <Menu size={20} />
                 </button>
 
-                <button
-                    className="desktop-sidebar-toggle"
-                    onClick={onSidebarToggle}
-                    aria-label={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-                    title={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-                >
-                    <PanelLeft size={20} />
-                </button>
+                <Link to="/dashboard" className="header-logo">
+                    <div className="header-logo-icon">W</div>
+                    <span className="header-logo-text">WorkSynapse</span>
+                </Link>
+
+
 
                 <SearchInput
                     ref={searchInputRef}
@@ -153,6 +152,8 @@ export function Header({ onMobileMenuClick, onSidebarToggle, isSidebarOpen }: He
                     )}
                 </div>
             </div>
+            {/* Mega Menu Component */}
+            <MegaMenu isOpen={isMegaMenuOpen} onClose={() => setIsMegaMenuOpen(false)} />
         </header>
     );
 }

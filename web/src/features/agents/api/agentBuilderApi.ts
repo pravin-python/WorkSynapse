@@ -15,7 +15,7 @@ export interface AgentModel {
     id: number;
     name: string;
     display_name: string;
-    provider: string;
+    provider?: { id: number; display_name: string } | string | null;
     description: string | null;
     requires_api_key: boolean;
     api_key_prefix: string | null;
@@ -95,6 +95,28 @@ export interface AgentMCPServer {
     updated_at: string;
 }
 
+export interface KnowledgeSource {
+    id: number;
+    name: string;
+    type: string;
+    metadata: Record<string, unknown> | null;
+}
+
+export interface RagDocument {
+    id: number;
+    filename: string;
+    file_type: string;
+    created_at: string;
+    status?: string;
+}
+
+export interface PromptTemplate {
+    id: string;
+    name: string;
+    description: string;
+    system_prompt: string;
+}
+
 export interface CustomAgent {
     id: number;
     name: string;
@@ -114,6 +136,15 @@ export interface CustomAgent {
     system_prompt: string;
     goal_prompt: string | null;
     service_prompt: string | null;
+
+    // Memory & RAG
+    memory_enabled: boolean;
+    memory_config: Record<string, unknown> | null;
+    rag_enabled: boolean;
+    rag_config: Record<string, unknown> | null;
+    rag_documents?: RagDocument[];
+    knowledge_sources?: KnowledgeSource[];
+
     status: string;
     is_public: boolean;
     total_sessions: number;
@@ -133,6 +164,7 @@ export interface CustomAgentDetail extends CustomAgent {
     tools: AgentTool[];
     connections: AgentConnection[];
     mcp_servers: AgentMCPServer[];
+    knowledge_sources: KnowledgeSource[];
 }
 
 export interface AgentListResponse {
@@ -178,6 +210,14 @@ export interface CreateAgentDTO {
     system_prompt: string;
     goal_prompt?: string;
     service_prompt?: string;
+
+    // Memory & RAG
+    memory_enabled?: boolean;
+    memory_config?: Record<string, unknown>;
+    rag_enabled?: boolean;
+    rag_config?: Record<string, unknown>;
+    knowledge_source_ids?: number[];
+
     is_public?: boolean;
     avatar_url?: string;
     color?: string;
@@ -201,6 +241,14 @@ export interface UpdateAgentDTO {
     system_prompt?: string;
     goal_prompt?: string;
     service_prompt?: string;
+
+    // Memory & RAG
+    memory_enabled?: boolean;
+    memory_config?: Record<string, unknown>;
+    rag_enabled?: boolean;
+    rag_config?: Record<string, unknown>;
+    knowledge_source_ids?: number[];
+
     status?: string;
     is_public?: boolean;
     avatar_url?: string;
@@ -330,6 +378,25 @@ export const agentBuilderApi = {
 
     removeMCPServer: (agentId: number, mcpId: number) =>
         api.delete<{ message: string }>(`${BASE_URL}/agents/${agentId}/mcp-servers/${mcpId}`),
+
+    getPromptTemplates: () =>
+        api.get<PromptTemplate[]>(`${BASE_URL}/prompt-templates`),
+
+    // RAG
+    uploadRagFile: (agentId: number, file: File) => {
+        const formData = new FormData();
+        formData.append('agent_id', agentId.toString());
+        formData.append('file', file);
+        return api.post<RagDocument>('/rag/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+    },
+
+    getAgentDocuments: (agentId: number) =>
+        api.get<RagDocument[]>(`/rag/agents/${agentId}/documents`),
+
+    deleteRagDocument: (documentId: number) =>
+        api.delete<{ message: string }>(`/rag/documents/${documentId}`),
 };
 
 export default agentBuilderApi;

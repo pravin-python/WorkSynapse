@@ -14,9 +14,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { agentBuilderApi, AgentModel, AgentApiKey, AvailableTool, CreateAgentDTO, UpdateAgentDTO } from '../api/agentBuilderApi';
+import { agentBuilderApi, AgentModel, AgentApiKey, AvailableTool, CreateAgentDTO, UpdateAgentDTO, RagDocument, PromptTemplate } from '../api/agentBuilderApi';
 import { localModelsService, LocalModel } from '../../local-models/api/localModelsService';
-import { ModelInputWithSuggestions } from './ModelInputWithSuggestions';
+// import { ModelInputWithSuggestions } from './ModelInputWithSuggestions';
 import './AgentBuilderForm.css';
 
 // ============================================================================
@@ -55,6 +55,12 @@ interface FormData {
     // MCP Servers
     mcp_servers: MCPServer[];
 
+    // Memory & RAG
+    memory_enabled: boolean;
+    memory_config: Record<string, unknown>;
+    rag_enabled: boolean;
+    rag_config: Record<string, unknown>;
+
     // Settings
     is_public: boolean;
     color: string;
@@ -90,7 +96,7 @@ interface FormErrors {
     [key: string]: string;
 }
 
-type FormSection = 'basic' | 'model' | 'prompts' | 'tools' | 'connections' | 'mcp' | 'review';
+type FormSection = 'basic' | 'model' | 'prompts' | 'knowledge' | 'tools' | 'connections' | 'mcp' | 'review';
 
 // ============================================================================
 // COMPONENT
@@ -109,13 +115,15 @@ export const AgentBuilderForm: React.FC = () => {
     const [errors, setErrors] = useState<FormErrors>({});
 
     // Search State
-    const [modelQuery, setModelQuery] = useState('');
+    // const [modelQuery, setModelQuery] = useState('');
 
     // Data
     const [models, setModels] = useState<AgentModel[]>([]);
     const [localModels, setLocalModels] = useState<LocalModel[]>([]);
     const [apiKeys, setApiKeys] = useState<AgentApiKey[]>([]);
     const [availableTools, setAvailableTools] = useState<AvailableTool[]>([]);
+    const [ragDocuments, setRagDocuments] = useState<RagDocument[]>([]);
+    const [promptTemplates, setPromptTemplates] = useState<PromptTemplate[]>([]);
 
 
     // Modals
@@ -141,6 +149,10 @@ export const AgentBuilderForm: React.FC = () => {
         tools: [],
         connections: [],
         mcp_servers: [],
+        memory_enabled: false,
+        memory_config: {},
+        rag_enabled: false,
+        rag_config: {},
         is_public: false,
         color: '#6366f1',
         icon: 'robot',
@@ -151,6 +163,7 @@ export const AgentBuilderForm: React.FC = () => {
         { id: 'basic', label: 'Basic Info', icon: '📝' },
         { id: 'model', label: 'Model Selection', icon: '🤖' },
         { id: 'prompts', label: 'Prompts', icon: '💬' },
+        { id: 'knowledge', label: 'Knowledge & Memory', icon: '🧠' },
         { id: 'tools', label: 'Tools', icon: '🔧' },
         { id: 'connections', label: 'Connections', icon: '🔗' },
         { id: 'mcp', label: 'MCP Servers', icon: '🔌' },
@@ -174,14 +187,16 @@ export const AgentBuilderForm: React.FC = () => {
     const loadData = async () => {
         setLoading(true);
         try {
-            const [modelsRes, toolsRes, localRes] = await Promise.all([
+            const [modelsRes, toolsRes, localRes, templatesRes] = await Promise.all([
                 agentBuilderApi.getModels(),
                 agentBuilderApi.getAvailableTools(),
                 localModelsService.getModelsForAgent(),
+                agentBuilderApi.getPromptTemplates(),
             ]);
             setModels(modelsRes);
             setAvailableTools(toolsRes);
             setLocalModels(localRes);
+            setPromptTemplates(templatesRes);
         } catch (error) {
             console.error('Failed to load data:', error);
         } finally {
@@ -233,10 +248,18 @@ export const AgentBuilderForm: React.FC = () => {
                     requires_auth: m.requires_auth,
                     auth_type: '',
                 })),
+                memory_enabled: agent.memory_enabled,
+                memory_config: agent.memory_config || {},
+                rag_enabled: agent.rag_enabled,
+                rag_config: agent.rag_config || {},
                 is_public: agent.is_public,
                 color: agent.color || '#6366f1',
                 icon: agent.icon || 'robot',
             });
+
+            if (agent.rag_documents) {
+                setRagDocuments(agent.rag_documents);
+            }
 
             // Load API keys for the model's provider
             if (agent.model_provider) {
@@ -262,58 +285,59 @@ export const AgentBuilderForm: React.FC = () => {
     useEffect(() => {
         if (formData.model_type === 'saas' && formData.model_id && models.length > 0) {
             const model = models.find(m => m.id === formData.model_id);
-            if (model) {
-                setSelectedProvider(model.provider);
-                setModelQuery(model.display_name);
+            if (model && model.provider) {
+                const pName = typeof model.provider === 'string' ? model.provider : model.provider.display_name;
+                setSelectedProvider(pName);
+
             }
         } else if (formData.model_type === 'local' && formData.local_model_id && localModels.length > 0) {
             const model = localModels.find(m => m.id === formData.local_model_id);
             if (model) {
-                setModelQuery(model.name);
+
             }
         }
     }, [formData.model_id, formData.local_model_id, models, localModels, formData.model_type]);
 
     // Reset query when switching tabs
     useEffect(() => {
-        setModelQuery('');
+        // setModelQuery('');
     }, [modelTab]);
 
     const getUniqueProviders = () => {
-        const providers = new Set(models.map(m => m.provider));
+        const providers = new Set(models
+            .map(m => {
+                if (!m.provider) return null;
+                return typeof m.provider === 'string' ? m.provider : m.provider.display_name;
+            })
+            .filter((p): p is string => Boolean(p))
+        );
         return Array.from(providers);
     };
 
     const getModelsForProvider = (provider: string) => {
-        return models
-            .filter(m => m.provider === provider)
-            .map(m => ({
-                id: m.id,
-                name: m.display_name,
-                description: m.description || undefined,
-                meta: `${(m.context_window / 1000).toFixed(0)}k context`
-            }));
+        return models.filter(m => {
+            if (!m.provider) return false;
+            const pName = typeof m.provider === 'string' ? m.provider : m.provider.display_name;
+            return pName === provider;
+        });
     };
 
-    const getLocalModelSuggestions = () => {
-        return localModels
-            .filter(m => m.status === 'ready') // Only show ready models
-            .map(m => ({
-                id: m.id,
-                name: m.name, // Use model name as display
-                description: m.description || undefined,
-                meta: `${m.size_gb?.toFixed(2) || '?'} GB`
-            }));
-    };
+
 
     const handleProviderSelect = (provider: string) => {
         setSelectedProvider(provider);
-        setModelQuery(''); // Reset query when provider changes
+
         // Clear current model selection if switching providers
         if (formData.model_type === 'saas' && formData.model_id) {
             const currentModel = models.find(m => m.id === formData.model_id);
-            if (currentModel && currentModel.provider !== provider) {
-                setFormData(prev => ({ ...prev, model_id: null, api_key_id: null }));
+            if (currentModel) {
+                const currentProvider = !currentModel.provider
+                    ? null
+                    : (typeof currentModel.provider === 'string' ? currentModel.provider : currentModel.provider.display_name);
+
+                if (currentProvider !== provider) {
+                    setFormData(prev => ({ ...prev, model_id: null, api_key_id: null }));
+                }
             }
         }
     };
@@ -334,13 +358,19 @@ export const AgentBuilderForm: React.FC = () => {
 
             // Load API keys for this provider
             try {
-                setModelQuery(model.display_name); // Update query to full name on select
-                const keysRes = await agentBuilderApi.getApiKeys(model.provider);
-                setApiKeys(keysRes);
 
-                // If model requires API key and none exists, show modal
-                if (model.requires_api_key && keysRes.length === 0) {
-                    setShowApiKeyModal(true);
+                const pName = !model.provider
+                    ? ''
+                    : (typeof model.provider === 'string' ? model.provider : model.provider.display_name);
+
+                if (pName) {
+                    const keysRes = await agentBuilderApi.getApiKeys(pName);
+                    setApiKeys(keysRes);
+
+                    // If model requires API key and none exists, show modal
+                    if (model.requires_api_key && keysRes.length === 0) {
+                        setShowApiKeyModal(true);
+                    }
                 }
             } catch (error) {
                 console.error('Failed to load API keys:', error);
@@ -349,7 +379,7 @@ export const AgentBuilderForm: React.FC = () => {
             const model = localModels.find(m => m.id === modelId);
             if (!model) return;
 
-            setModelQuery(model.name); // Update query to full name on select
+
 
             setFormData(prev => ({
                 ...prev,
@@ -362,8 +392,6 @@ export const AgentBuilderForm: React.FC = () => {
             setApiKeys([]);
         }
     };
-
-
 
     const renderModelSelection = () => {
         const selectedModel = formData.model_type === 'saas'
@@ -381,8 +409,8 @@ export const AgentBuilderForm: React.FC = () => {
                 </p>
 
                 <div className="model-tabs" style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
-                    <button type="button" className={`tab-btn ${modelTab === 'saas' ? 'active' : ''}`} onClick={() => setModelTab('saas')} style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #ccc', background: modelTab === 'saas' ? '#eff6ff' : 'white', cursor: 'pointer', fontWeight: modelTab === 'saas' ? 'bold' : 'normal' }}>Cloud Models</button>
-                    <button type="button" className={`tab-btn ${modelTab === 'local' ? 'active' : ''}`} onClick={() => setModelTab('local')} style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #ccc', background: modelTab === 'local' ? '#eff6ff' : 'white', cursor: 'pointer', fontWeight: modelTab === 'local' ? 'bold' : 'normal' }}>Local Models</button>
+                    <button type="button" className={`tab-btn ${modelTab === 'saas' ? 'active' : ''}`} onClick={() => setModelTab('saas')}>Cloud Models</button>
+                    <button type="button" className={`tab-btn ${modelTab === 'local' ? 'active' : ''}`} onClick={() => setModelTab('local')}>Local Models</button>
                 </div>
 
                 {errors.model_id && <div className="error-banner">{errors.model_id}</div>}
@@ -392,55 +420,52 @@ export const AgentBuilderForm: React.FC = () => {
                         {/* Step 1: Provider Selection */}
                         <div className="form-group">
                             <label>1. Select Provider</label>
-                            <div className="providers-grid" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
+                            <select
+                                className="form-select"
+                                value={selectedProvider || ''}
+                                onChange={(e) => handleProviderSelect(e.target.value)}
+                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                            >
+                                <option value="">-- Choose a Provider --</option>
                                 {getUniqueProviders().map(provider => (
-                                    <div
-                                        key={provider}
-                                        className={`provider-card ${selectedProvider === provider ? 'selected' : ''}`}
-                                        onClick={() => handleProviderSelect(provider)}
-                                        style={{
-                                            padding: '15px',
-                                            border: `2px solid ${selectedProvider === provider ? '#6366f1' : '#e2e8f0'}`,
-                                            borderRadius: '8px',
-                                            cursor: 'pointer',
-                                            textTransform: 'capitalize',
-                                            background: selectedProvider === provider ? '#eff6ff' : 'white',
-                                            fontWeight: 'bold',
-                                            minWidth: '100px',
-                                            textAlign: 'center'
-                                        }}
-                                    >
-                                        {provider}
-                                    </div>
+                                    <option key={provider} value={provider}>{provider}</option>
                                 ))}
-                            </div>
+                            </select>
                         </div>
 
-                        {/* Step 2: Model Selection (Autocomplete) */}
+                        {/* Step 2: Model Selection */}
                         {selectedProvider && (
                             <div className="form-group animation-slide-in">
                                 <label>2. Select Model</label>
-                                <ModelInputWithSuggestions
-                                    suggestions={getModelsForProvider(selectedProvider)}
-                                    value={modelQuery}
-                                    onChange={(val) => setModelQuery(val)}
-                                    onSelect={(item) => handleModelSelect(item.id as number, 'saas')}
-                                    placeholder={`Select a ${selectedProvider} model...`}
-                                />
+                                <select
+                                    className="form-select"
+                                    value={formData.model_id || ''}
+                                    onChange={(e) => handleModelSelect(Number(e.target.value), 'saas')}
+                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                                >
+                                    <option value="">-- Choose a Model --</option>
+                                    {getModelsForProvider(selectedProvider).map(m => (
+                                        <option key={m.id} value={m.id}>
+                                            {m.display_name} ({(m.context_window / 1000).toFixed(0)}k context)
+                                        </option>
+                                    ))}
+                                </select>
+
                                 {selectedModel && 'context_window' in selectedModel && (
                                     <div className="selected-model-info" style={{ marginTop: '10px', fontSize: '0.9rem', color: '#666' }}>
-                                        Running <strong>{selectedModel.name}</strong> • {(selectedModel.context_window / 1000).toFixed(0)}k Context
+                                        Running <strong>{selectedModel.display_name}</strong> • {(selectedModel.context_window / 1000).toFixed(0)}k Context
                                     </div>
                                 )}
                             </div>
                         )}
 
                         {!selectedProvider && (
-                            <div className="info-message">Select a provider to see available models.</div>
+                            <div className="info-message">Select a provider first to see available models.</div>
                         )}
                     </div>
                 ) : (
                     <div className="local-models-flow">
+                        {/* Local Models Logic remains similar */}
                         <div className="form-group">
                             <label>Select Local Model</label>
                             {localModels.length === 0 ? (
@@ -449,13 +474,19 @@ export const AgentBuilderForm: React.FC = () => {
                                     <button type="button" className="btn-secondary" onClick={() => navigate('/ai/local-models')}>Download Models</button>
                                 </div>
                             ) : (
-                                <ModelInputWithSuggestions
-                                    suggestions={getLocalModelSuggestions()}
-                                    value={modelQuery}
-                                    onChange={(val) => setModelQuery(val)}
-                                    onSelect={(item) => handleModelSelect(item.id as number, 'local')}
-                                    placeholder="Select a downloaded model..."
-                                />
+                                <select
+                                    className="form-select"
+                                    value={formData.local_model_id || ''}
+                                    onChange={(e) => handleModelSelect(Number(e.target.value), 'local')}
+                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                                >
+                                    <option value="">-- Choose a Local Model --</option>
+                                    {localModels.filter(m => m.status === 'ready').map(m => (
+                                        <option key={m.id} value={m.id}>
+                                            {m.name} ({m.size_gb?.toFixed(2) || '?'} GB)
+                                        </option>
+                                    ))}
+                                </select>
                             )}
                         </div>
                     </div>
@@ -489,7 +520,7 @@ export const AgentBuilderForm: React.FC = () => {
                             </div>
                         ) : (
                             <div className="no-api-key">
-                                <p>No API key found for {(selectedModel as AgentModel).provider}.</p>
+                                <p>No API key found for {typeof (selectedModel as AgentModel).provider === 'string' ? (selectedModel as AgentModel).provider : ((selectedModel as AgentModel).provider as any).display_name}.</p>
                                 <button
                                     type="button"
                                     className="btn-primary"
@@ -622,6 +653,159 @@ export const AgentBuilderForm: React.FC = () => {
     };
 
     // ========================================================================
+    // RAG DOCUMENTS
+    // ========================================================================
+
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file || !agentId) return;
+
+        setSaving(true);
+        try {
+            const uploadedDoc = await agentBuilderApi.uploadRagFile(parseInt(agentId), file);
+            setRagDocuments(prev => [...prev, uploadedDoc]);
+            // Clear input
+            event.target.value = '';
+        } catch (error) {
+            console.error('Failed to upload file:', error);
+            setErrors(prev => ({ ...prev, rag: 'Failed to upload file' }));
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleDeleteDocument = async (docId: number) => {
+        if (!confirm('Are you sure you want to delete this document?')) return;
+
+        try {
+            await agentBuilderApi.deleteRagDocument(docId);
+            setRagDocuments(prev => prev.filter(d => d.id !== docId));
+        } catch (error) {
+            console.error('Failed to delete document:', error);
+        }
+    };
+
+    // ========================================================================
+    // KNOWLEDGE & MEMORY
+    // ========================================================================
+
+    const renderKnowledge = () => (
+        <div className="agent-builder-section">
+            <h2 className="section-title">
+                <span className="section-icon">🧠</span>
+                Knowledge & Memory
+            </h2>
+            <p className="section-description">
+                Give your agent long-term memory and access to your knowledge base.
+            </p>
+
+            <div className="form-group" style={{ marginBottom: '25px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <label style={{ margin: 0 }}>Enable Memory</label>
+                    <div className="toggle-switch">
+                        <input
+                            type="checkbox"
+                            checked={formData.memory_enabled}
+                            onChange={(e) => setFormData(prev => ({ ...prev, memory_enabled: e.target.checked }))}
+                            id="memory-toggle"
+                        />
+                        <label htmlFor="memory-toggle"></label>
+                    </div>
+                </div>
+                <p className="field-hint">
+                    Allows the agent to remember past conversations and user preferences across sessions.
+                </p>
+            </div>
+
+            <hr style={{ margin: '20px 0', border: 'none', borderTop: '1px solid #eee' }} />
+
+            <div className="form-group">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <label style={{ margin: 0 }}>Enable RAG (Retrieval Augmented Generation)</label>
+                    <div className="toggle-switch">
+                        <input
+                            type="checkbox"
+                            checked={formData.rag_enabled}
+                            onChange={(e) => setFormData(prev => ({ ...prev, rag_enabled: e.target.checked }))}
+                            id="rag-toggle"
+                        />
+                        <label htmlFor="rag-toggle"></label>
+                    </div>
+                </div>
+                <p className="field-hint">
+                    Allows the agent to search and retrieve information from your knowledge base.
+                </p>
+
+                {formData.rag_enabled && (
+                    <div className="rag-documents-section animation-slide-in" style={{ marginTop: '20px' }}>
+                        <label>Knowledge Documents</label>
+
+                        {!isEditing ? (
+                            <div className="info-message warning">
+                                Please create the agent first to upload documents.
+                            </div>
+                        ) : (
+                            <>
+                                <div className="documents-list" style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    {ragDocuments.map(doc => (
+                                        <div key={doc.id} className="document-item" style={{
+                                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                            padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px',
+                                            backgroundColor: 'white'
+                                        }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <span style={{ fontSize: '1.2rem' }}>📄</span>
+                                                <div>
+                                                    <div style={{ fontWeight: '500' }}>{doc.filename}</div>
+                                                    <div style={{ fontSize: '0.8rem', color: '#666' }}>
+                                                        {doc.file_type} • {new Date(doc.created_at).toLocaleDateString()}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDeleteDocument(doc.id)}
+                                                className="btn-icon danger"
+                                                style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}
+                                            >
+                                                🗑️
+                                            </button>
+                                        </div>
+                                    ))}
+
+                                    {ragDocuments.length === 0 && (
+                                        <div className="empty-state-small">No documents uploaded yet.</div>
+                                    )}
+                                </div>
+
+                                <div className="upload-actions" style={{ marginTop: '15px' }}>
+                                    <input
+                                        type="file"
+                                        id="rag-file-upload"
+                                        style={{ display: 'none' }}
+                                        onChange={handleFileUpload}
+                                        accept=".pdf,.txt,.md,.docx,.csv"
+                                    />
+                                    <label
+                                        htmlFor="rag-file-upload"
+                                        className="btn-secondary"
+                                        style={{ display: 'inline-block', cursor: 'pointer' }}
+                                    >
+                                        + Upload Document
+                                    </label>
+                                    <p className="field-hint" style={{ marginTop: '5px' }}>
+                                        Supported: PDF, TXT, MD, DOCX (Max 10MB)
+                                    </p>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+
+    // ========================================================================
     // VALIDATION
     // ========================================================================
 
@@ -733,6 +917,12 @@ export const AgentBuilderForm: React.FC = () => {
                     config_json: t.config,
                     is_enabled: t.is_enabled,
                 })),
+                // Memory & RAG
+                memory_enabled: formData.memory_enabled,
+                memory_config: formData.memory_config,
+                rag_enabled: formData.rag_enabled,
+                rag_config: formData.rag_config,
+
                 mcp_servers: formData.mcp_servers
                     .filter(m => m.server_name && m.server_url)
                     .map(m => ({
@@ -857,6 +1047,30 @@ export const AgentBuilderForm: React.FC = () => {
             <p className="section-description">
                 Configure the prompts that define your agent's behavior and personality.
             </p>
+
+            <div className="form-group">
+                <label>Prompt Template</label>
+                <select
+                    onChange={(e) => {
+                        const template = promptTemplates.find(t => t.id === e.target.value);
+                        if (template) {
+                            setFormData(prev => ({
+                                ...prev,
+                                system_prompt: template.system_prompt
+                            }));
+                        }
+                    }}
+                    defaultValue=""
+                >
+                    <option value="" disabled>Select a template...</option>
+                    {promptTemplates.map(t => (
+                        <option key={t.id} value={t.id}>{t.name} - {t.description}</option>
+                    ))}
+                </select>
+                <p className="field-hint">
+                    Choose a template to pre-fill the system prompt.
+                </p>
+            </div>
 
             <div className="form-group">
                 <label htmlFor="system-prompt">System Prompt *</label>
@@ -1219,6 +1433,7 @@ export const AgentBuilderForm: React.FC = () => {
                     {currentSection === 'basic' && renderBasicInfo()}
                     {currentSection === 'model' && renderModelSelection()}
                     {currentSection === 'prompts' && renderPrompts()}
+                    {currentSection === 'knowledge' && renderKnowledge()}
                     {currentSection === 'tools' && renderTools()}
                     {currentSection === 'connections' && renderConnections()}
                     {currentSection === 'mcp' && renderMCPServers()}
@@ -1261,12 +1476,21 @@ export const AgentBuilderForm: React.FC = () => {
             {/* API Key Modal */}
             {showApiKeyModal && (
                 <ApiKeyModal
-                    provider={models.find(m => m.id === formData.model_id)?.provider || ''}
+                    provider={(() => {
+                        const m = models.find(m => m.id === formData.model_id);
+                        if (!m?.provider) return '';
+                        return typeof m.provider === 'string' ? m.provider : m.provider.display_name;
+                    })()}
                     onClose={() => setShowApiKeyModal(false)}
                     onSave={async (key) => {
                         try {
+                            const m = models.find(m => m.id === formData.model_id);
+                            const pName = m?.provider
+                                ? (typeof m.provider === 'string' ? m.provider : m.provider.display_name)
+                                : '';
+
                             const newKey = await agentBuilderApi.createApiKey({
-                                provider: models.find(m => m.id === formData.model_id)?.provider || '',
+                                provider: pName,
                                 api_key: key,
                                 label: 'Default',
                             });
@@ -1316,7 +1540,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ provider, onClose, onSave }) 
 
     return (
         <div className="modal-backdrop" onClick={onClose}>
-            <div className="modal-content api-key-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-content api-key-modal" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                 <h2>Add API Key for {provider}</h2>
                 <p>Enter your API key to use models from {provider}.</p>
 
