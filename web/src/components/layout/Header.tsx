@@ -86,7 +86,7 @@ export function Header({ onSidebarToggle, isSidebarOpen }: HeaderProps) {
                 </button>
 
                 <Link to="/dashboard" className="header-logo">
-                    <div className="header-logo-icon">W</div>
+                    <img src="/logo.png" alt="WorkSynapse" className="header-logo-icon" style={{ background: 'transparent' }} />
                     <span className="header-logo-text">WorkSynapse</span>
                 </Link>
 

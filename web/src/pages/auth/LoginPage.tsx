@@ -80,7 +80,7 @@ export function LoginPage() {
                 <div className="auth-card">
                     <div className="auth-header">
                         <div className="auth-logo">
-                            <div className="logo-icon">W</div>
+                            <img src="/logo.png" alt="WorkSynapse" className="logo-icon" style={{ background: 'transparent' }} />
                             <span className="logo-text">WorkSynapse</span>
                         </div>
                         <h1>Welcome back</h1>

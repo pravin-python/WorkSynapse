@@ -82,7 +82,7 @@ export function Sidebar({ isOpen, mobileOpen, setMobileOpen }: SidebarProps) {
             <aside className={`sidebar-container ${isOpen ? 'expanded' : 'collapsed'} ${mobileOpen ? 'mobile-open' : ''}`}>
                 <div className="sidebar-header">
                     <Link to="/dashboard" className="logo-area" title="WorkSynapse Dashboard">
-                        <div className="logo-icon">W</div>
+                        <img src="/logo.png" alt="WorkSynapse" className="logo-icon" style={{ background: 'transparent' }} />
                         <span className={`logo-text ${!isOpen ? 'hidden' : ''}`}>WorkSynapse</span>
                     </Link>
 
