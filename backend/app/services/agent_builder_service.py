@@ -488,6 +488,11 @@ class AgentBuilderService:
             system_prompt=data.system_prompt,
             goal_prompt=data.goal_prompt,
             service_prompt=data.service_prompt,
+            # Memory & RAG
+            memory_enabled=data.memory_enabled,
+            memory_config=data.memory_config,
+            rag_enabled=data.rag_enabled,
+            rag_config=data.rag_config,
             is_public=data.is_public,
             avatar_url=data.avatar_url,
             color=data.color,
@@ -498,6 +503,14 @@ class AgentBuilderService:
         )
         db.add(agent)
         await db.flush()  # Get the agent ID
+        
+        # Link Knowledge Sources
+        if data.knowledge_source_ids:
+            # Import here to avoid circular dependencies if any, though likely fine at top
+            from app.models.rag import KnowledgeSource
+            stmt = select(KnowledgeSource).where(KnowledgeSource.id.in_(data.knowledge_source_ids))
+            sources = (await db.execute(stmt)).scalars().all()
+            agent.knowledge_sources = list(sources)
         
         # Add tools
         if data.tools:
@@ -570,13 +583,22 @@ class AgentBuilderService:
             "name", "description", "temperature", "max_tokens", "top_p",
             "frequency_penalty", "presence_penalty", "system_prompt",
             "goal_prompt", "service_prompt", "is_public", "avatar_url",
-            "color", "icon"
+            "color", "icon", "memory_enabled", "memory_config",
+            "rag_enabled", "rag_config"
         ]
         
         for field in update_fields:
             value = getattr(data, field, None)
             if value is not None:
                 setattr(agent, field, value)
+        
+        # Handle Knowledge Sources
+        if data.knowledge_source_ids is not None:
+            # Replace existing sources
+            from app.models.rag import KnowledgeSource
+            stmt = select(KnowledgeSource).where(KnowledgeSource.id.in_(data.knowledge_source_ids))
+            sources = (await db.execute(stmt)).scalars().all()
+            agent.knowledge_sources = list(sources)
         
         # Handle model change
         # Handle model change
@@ -941,3 +963,159 @@ class AgentBuilderService:
         await db.delete(mcp)
         await db.commit()
         return True
+
+    @staticmethod
+    async def get_knowledge_sources(db: AsyncSession) -> List[Dict[str, Any]]:
+        """Get all available knowledge sources."""
+        from app.models.rag import KnowledgeSource
+        
+        query = select(KnowledgeSource).where(KnowledgeSource.is_active == True)
+        result = await db.execute(query)
+        sources = result.scalars().all()
+        
+        return [
+            {
+                "id": s.id,
+                "name": s.name,
+                "type": s.source_type,
+                "metadata": s.metadata_json
+            }
+            for s in sources
+        ]
+
+    @staticmethod
+    async def get_prompt_templates(db: AsyncSession) -> List[Dict[str, Any]]:
+        """Get all available prompt templates."""
+        from app.models.agent_builder.model import AgentPromptTemplate
+        
+        # Return templates that are either generic or public
+        # For now, we'll return a hardcoded list of 'System' templates because 
+        # we don't have a separate table for reusable templates yet.
+        # This mocks the GET /prompt-templates requirement.
+        
+        # In a real impl, we might query a separate table or filter AgentPromptTemplate
+        
+        return [
+            {
+                "id": "coding-assistant",
+                "name": "Coding Assistant",
+                "description": "General purpose coding assistant",
+                "system_prompt": "You are a helpful coding assistant. You write clean, efficient code."
+            },
+            {
+                "id": "data-analyst",
+                "name": "Data Analyst",
+                "description": "Expert in data analysis and visualization",
+                "system_prompt": "You are a data analyst. You help users understand their data."
+            },
+            {
+                "id": "writer",
+                "name": "Content Writer",
+                "description": "Creative writing specialist",
+                "system_prompt": "You are a creative writer. You help users write engaging content."
+            }
+        ]
+
+    @staticmethod
+    async def get_knowledge_sources(db: AsyncSession) -> List[Dict[str, Any]]:
+        """Get all available knowledge sources."""
+        from app.models.rag import KnowledgeSource
+        
+        query = select(KnowledgeSource).where(KnowledgeSource.is_active == True)
+        result = await db.execute(query)
+        sources = result.scalars().all()
+        
+        return [
+            {
+                "id": s.id,
+                "name": s.name,
+                "type": s.source_type,
+                "metadata": s.metadata_json
+            }
+            for s in sources
+        ]
+
+    @staticmethod
+    async def get_prompt_templates(db: AsyncSession) -> List[Dict[str, Any]]:
+        """Get all available prompt templates."""
+        from app.models.agent_builder.model import AgentPromptTemplate
+        
+        # Return templates that are either generic or public
+        # For now, we'll return a hardcoded list of 'System' templates because 
+        # we don't have a separate table for reusable templates yet.
+        # This mocks the GET /prompt-templates requirement.
+        
+        # In a real impl, we might query a separate table or filter AgentPromptTemplate
+        
+        return [
+            {
+                "id": "coding-assistant",
+                "name": "Coding Assistant",
+                "description": "General purpose coding assistant",
+                "system_prompt": "You are a helpful coding assistant. You write clean, efficient code."
+            },
+            {
+                "id": "data-analyst",
+                "name": "Data Analyst",
+                "description": "Expert in data analysis and visualization",
+                "system_prompt": "You are a data analyst. You help users understand their data."
+            },
+            {
+                "id": "writer",
+                "name": "Content Writer",
+                "description": "Creative writing specialist",
+                "system_prompt": "You are a creative writer. You help users write engaging content."
+            }
+        ]
+
+    @staticmethod
+    async def get_knowledge_sources(db: AsyncSession) -> List[Dict[str, Any]]:
+        """Get all available knowledge sources."""
+        from app.models.rag import KnowledgeSource
+        
+        query = select(KnowledgeSource).where(KnowledgeSource.is_active == True)
+        result = await db.execute(query)
+        sources = result.scalars().all()
+        
+        return [
+            {
+                "id": s.id,
+                "name": s.name,
+                "type": s.source_type,
+                "metadata": s.metadata_json
+            }
+            for s in sources
+        ]
+
+    @staticmethod
+    async def get_prompt_templates(db: AsyncSession) -> List[Dict[str, Any]]:
+        """Get all available prompt templates."""
+        from app.models.agent_builder.model import AgentPromptTemplate
+        
+        # Return templates that are either generic or public
+        # For now, we'll return a hardcoded list of 'System' templates because 
+        # we don't have a separate table for reusable templates yet.
+        # This mocks the GET /prompt-templates requirement.
+        
+        # In a real impl, we might query a separate table or filter AgentPromptTemplate
+        
+        return [
+            {
+                "id": "coding-assistant",
+                "name": "Coding Assistant",
+                "description": "General purpose coding assistant",
+                "system_prompt": "You are a helpful coding assistant. You write clean, efficient code."
+            },
+            {
+                "id": "data-analyst",
+                "name": "Data Analyst",
+                "description": "Expert in data analysis and visualization",
+                "system_prompt": "You are a data analyst. You help users understand their data."
+            },
+            {
+                "id": "writer",
+                "name": "Content Writer",
+                "description": "Creative writing specialist",
+                "system_prompt": "You are a creative writer. You help users write engaging content."
+            }
+        ]

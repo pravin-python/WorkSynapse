@@ -11,6 +11,8 @@ from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field, field_validator, model_validator
 from enum import Enum
 import re
+from app.schemas.llm import LLMProviderResponse
+from app.schemas.rag import RagDocumentResponse
 
 
 # =============================================================================
@@ -92,7 +94,7 @@ class AgentModelResponse(AgentModelBase):
     """Schema for model response."""
     id: int
     provider_id: int
-    provider: Optional[Any] = None # Or specialized schema if imported
+    provider: Optional["LLMProviderResponse"] = None
     requires_api_key: bool
     api_key_prefix: Optional[str] = None
     context_window: int
@@ -351,6 +353,13 @@ class CustomAgentCreate(CustomAgentBase):
     color: Optional[str] = None
     icon: Optional[str] = None
     
+    # Memory & RAG
+    memory_enabled: bool = False
+    memory_config: Optional[Dict[str, Any]] = None
+    rag_enabled: bool = False
+    rag_config: Optional[Dict[str, Any]] = None
+    knowledge_source_ids: Optional[List[int]] = None
+    
     # Optional nested configurations (for creation in one call)
     tools: Optional[List[AgentToolConfigCreate]] = None
     connections: Optional[List[AgentConnectionCreate]] = None
@@ -422,6 +431,13 @@ class CustomAgentResponse(CustomAgentBase):
     service_prompt: Optional[str] = None
     status: CustomAgentStatusEnum
     is_public: bool
+    
+    # Memory & RAG
+    memory_enabled: bool
+    memory_config: Optional[Dict[str, Any]] = None
+    rag_enabled: bool
+    rag_config: Optional[Dict[str, Any]] = None
+    
     total_sessions: int
     total_messages: int
     total_tokens_used: int
@@ -443,6 +459,9 @@ class CustomAgentDetailResponse(CustomAgentResponse):
     tools: List[AgentToolConfigResponse] = []
     connections: List[AgentConnectionResponse] = []
     mcp_servers: List[AgentMCPServerResponse] = []
+    rag_documents: List[RagDocumentResponse] = []
+    # Deprecated
+    knowledge_sources: List[Dict[str, Any]] = []
 
 
 class CustomAgentListResponse(BaseModel):

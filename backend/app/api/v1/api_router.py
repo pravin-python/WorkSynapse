@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.routers import users, auth, projects, tasks, chat, agents, webhooks, notes, worklogs, files, llm_keys, user_activity, accounts, roles, agent_builder, local_models, agent_models
+from app.api.v1.routers import users, auth, projects, tasks, chat, agents, webhooks, notes, worklogs, files, llm_keys, user_activity, accounts, roles, agent_builder, local_models, agent_models, rag
 from app.api.v1.endpoints import websockets
 
 api_router = APIRouter()
@@ -51,3 +51,6 @@ api_router.include_router(local_models.router, prefix="/local-models", tags=["lo
 
 # Agent Models Registry routes (Admin management)
 api_router.include_router(agent_models.router, prefix="/agent-models", tags=["agent-models"])
+
+# RAG routes
+api_router.include_router(rag.router, prefix="/rag", tags=["rag"])

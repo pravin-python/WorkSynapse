@@ -138,6 +138,8 @@ from app.models.agent_builder.model import (
     AgentToolConfig,
     AgentConnection,
     AgentMCPServer,
+    AgentPromptTemplate,
+    AgentRuntimePromptData,
 )
 
 # Local AI Models
@@ -147,6 +149,13 @@ from app.models.local_models.model import (
     ModelSource,
     ModelStatus,
     ModelType,
+)
+
+# RAG Knowledge Models
+from app.models.rag import (
+    RagDocument,
+    RagChunk,
+    AgentRagDocument,
 )
 
 
@@ -260,6 +269,8 @@ __all__ = [
     "AgentToolConfig",
     "AgentConnection",
     "AgentMCPServer",
+    "AgentPromptTemplate",
+    "AgentRuntimePromptData",
     "AgentMCPServer",
 
     # Local Models
@@ -268,4 +279,9 @@ __all__ = [
     "ModelSource",
     "ModelStatus",
     "ModelType",
+    
+    # RAG
+    "RagDocument",
+    "RagChunk",
+    "AgentRagDocument",
 ]

@@ -46,7 +46,7 @@ class LLMProviderResponse(LLMProviderBase):
     type: str
     is_active: bool
     config_schema: Optional[Dict[str, Any]] = None
-    config_schema: Optional[Dict[str, Any]] = None
+    config_schema: Optional[Any] = None  # Can be Dict or JSON string
     created_at: datetime
     
     class Config:

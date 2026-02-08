@@ -19,13 +19,21 @@ from typing import List, Optional, TYPE_CHECKING
 if TYPE_CHECKING:
     from app.models.local_models.model import LocalModel
     from app.models.llm.model import LLMKeyProvider
+    from app.models.rag import AgentRagDocument
 from enum import Enum
 from sqlalchemy import (
     Column, Integer, String, Text, DateTime, Float,
-    ForeignKey, Boolean, Enum as SQLEnum, UniqueConstraint, Index, JSON
+    ForeignKey, Boolean, Enum as SQLEnum, UniqueConstraint, Index, JSON, Table
 )
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from app.models.base import Base, AuditMixin
+
+
+# =============================================================================
+# ASSOCIATION TABLES
+# =============================================================================
+
+
 
 
 # =============================================================================
@@ -235,6 +243,22 @@ class CustomAgent(Base, AuditMixin):
     goal_prompt: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     service_prompt: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
+    # Memory Configuration
+    memory_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    memory_config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    
+    # RAG Configuration
+    rag_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    rag_config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    
+    # Memory Configuration
+    memory_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    memory_config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    
+    # RAG Configuration
+    rag_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    rag_config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    
     # Status
     status: Mapped[CustomAgentStatus] = mapped_column(
         SQLEnum(CustomAgentStatus, values_callable=lambda obj: [e.value for e in obj]),
@@ -277,6 +301,17 @@ class CustomAgent(Base, AuditMixin):
     mcp_servers: Mapped[List["AgentMCPServer"]] = relationship(
         "AgentMCPServer",
         back_populates="agent",
+        cascade="all, delete-orphan"
+    )
+    rag_documents: Mapped[List["AgentRagDocument"]] = relationship(
+        "AgentRagDocument",
+        back_populates="agent",
+        cascade="all, delete-orphan"
+    )
+    prompt_template: Mapped[Optional["AgentPromptTemplate"]] = relationship(
+        "AgentPromptTemplate",
+        back_populates="agent",
+        uselist=False,
         cascade="all, delete-orphan"
     )
     
@@ -443,3 +478,59 @@ class AgentMCPServer(Base):
     
     def __repr__(self):
         return f"<AgentMCPServer {self.server_name} for Agent {self.agent_id}>"
+
+
+# =============================================================================
+# AGENT PROMPTS
+# =============================================================================
+
+class AgentPromptTemplate(Base, AuditMixin):
+    """
+    Structured prompt templates for LangChain-style architecture.
+    """
+    __tablename__ = "agent_prompt_templates"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    agent_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("custom_agents.id", ondelete="CASCADE"),
+        nullable=False
+    )
+
+    # Prompt Components
+    system_prompt: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    goal_prompt: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    instruction_prompt: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    tool_prompt: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    output_prompt: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    # Relationships
+    agent: Mapped["CustomAgent"] = relationship("CustomAgent", back_populates="prompt_template")
+
+
+class AgentRuntimePromptData(Base, AuditMixin):
+    """
+    Runtime dynamic prompt data for specific sessions.
+    """
+    __tablename__ = "agent_runtime_prompts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    agent_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("custom_agents.id", ondelete="CASCADE"),
+        nullable=False
+    )
+    session_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+
+    # Dynamic Components
+    user_prompt: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    task_prompt: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    context_prompt: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    memory_prompt: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    scratchpad_prompt: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Relationships
+    agent: Mapped["CustomAgent"] = relationship("CustomAgent")
+

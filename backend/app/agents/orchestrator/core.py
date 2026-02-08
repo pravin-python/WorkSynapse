@@ -132,7 +132,7 @@ class AgentOrchestrator:
             steps.append("security_check")
 
             # Build system prompt
-            system_prompt = self._build_system_prompt(agent_config)
+            system_prompt = await self._build_system_prompt(agent_config, thread_id)
             steps.append("build_prompt")
 
             # Get conversation history
@@ -262,7 +262,7 @@ class AgentOrchestrator:
             yield {"type": "step", "step": "Starting agent..."}
 
             # Build system prompt
-            system_prompt = self._build_system_prompt(agent_config)
+            system_prompt = await self._build_system_prompt(agent_config, thread_id)
 
             # Get conversation history
             history = await self.memory_manager.get_conversation_history(
@@ -341,8 +341,16 @@ class AgentOrchestrator:
             logger.error(f"Stream error: {e}", exc_info=True)
             yield {"type": "error", "error": str(e)}
 
-    def _build_system_prompt(self, agent_config: Dict[str, Any]) -> str:
-        """Build the complete system prompt for an agent."""
+    async def _build_system_prompt(self, agent_config: Dict[str, Any], thread_id: str = "", message: str = "") -> str:
+        """
+        Build the complete system prompt for an agent.
+        Supports both legacy configuration and new structured prompt templates.
+        """
+        # Check for structured prompt template
+        if "prompt_template" in agent_config and agent_config["prompt_template"]:
+            return await self._build_structured_system_prompt(agent_config, thread_id, message)
+
+        # Legacy Prompt Building
         parts = []
 
         # Base system prompt
@@ -370,6 +378,95 @@ class AgentOrchestrator:
             parts.append(f"\n\nAvailable tools: {', '.join(tool_names)}")
 
         return "\n".join(parts)
+
+    async def _build_structured_system_prompt(self, agent_config: Dict[str, Any], thread_id: str, message: str) -> str:
+        """
+        Build a LangChain-style structured prompt from templates.
+        """
+        # 1. Get Template Parts
+        # Try to get from config first (runtime override), then fall back to DB/Defaults
+        template = agent_config.get("prompt_template", {})
+        
+        system_part = template.get("system_prompt", "") or agent_config.get("system_prompt", "")
+        goal_part = template.get("goal_prompt", "")
+        instruction_part = template.get("instruction_prompt", "")
+        output_part = template.get("output_prompt", "")
+        tool_part = template.get("tool_prompt", "")
+
+        # 2. Dynamic Runtime Data
+        context_part = ""
+        memory_part = ""
+        scratchpad_part = ""
+        user_prompt = message
+        task_prompt = "Interact with the user to help them achieve their goals."
+
+        # RAG Integration (Context)
+        if message:
+            try:
+                from app.ai.rag.rag_service import get_rag_service
+                rag_service = get_rag_service()
+                # Get relevant chunks
+                chunks = await rag_service.retrieve_context(message, k=5)
+                if chunks:
+                    context_part = "\n---\n".join(chunks)
+            except Exception as e:
+                logger.warning(f"RAG retrieval failed: {e}")
+        
+        # Memory Integration
+        if thread_id:
+            try:
+                agent_id = agent_config.get("id", 0)
+                # Get session memory summary or last K messages if needed explicitly here
+                # Note: The conversation history is usually appended as messages list in LangChain
+                # This 'memory_prompt' section is for specific summarized context
+                session_mem = self.memory_manager.get_session_memory(agent_id, thread_id)
+                session_data = session_mem.get_all()
+                if session_data:
+                    memory_items = [f"{k}: {v}" for k, v in session_data.items()]
+                    memory_part = "\n".join(memory_items)
+            except Exception as e:
+                logger.warning(f"Failed to load session memory: {e}")
+
+        # Tools Default Description
+        if not tool_part:
+            tools = agent_config.get("tools", [])
+            if tools:
+                tool_names = [t.get("name") if isinstance(t, dict) else t for t in tools]
+                tool_part = f"Available Tools: {', '.join(tool_names)}"
+
+        # 3. Assemble Prompt
+        # This matches the requested format in the prompt
+        assembled_prompt = f"""
+{system_part}
+
+GOAL:
+{goal_part}
+
+INSTRUCTIONS:
+{instruction_part}
+
+TOOLS:
+{tool_part}
+
+CONTEXT:
+{context_part}
+
+MEMORY:
+{memory_part}
+
+SCRATCHPAD:
+{scratchpad_part}
+
+USER:
+{user_prompt}
+
+TASK:
+{task_prompt}
+
+OUTPUT FORMAT:
+{output_part}
+"""
+        return assembled_prompt.strip()
 
     def _build_graph(self, llm, tools):
         """Build the LangGraph execution graph."""

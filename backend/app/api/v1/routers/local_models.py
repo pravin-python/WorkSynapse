@@ -129,17 +129,7 @@ async def get_model_stats(
     return ModelStatsResponse(**stats)
 
 
-@router.get("/{model_id}", response_model=LocalModelResponse)
-async def get_local_model(
-    model_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Get a specific local model."""
-    model = await LocalModelService.get_model(db, model_id)
-    if not model:
-        raise HTTPException(status_code=404, detail="Model not found")
-    return model_to_response(model)
+
 
 
 @router.post("", response_model=LocalModelResponse, status_code=status.HTTP_201_CREATED)
@@ -158,38 +148,10 @@ async def create_local_model(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.patch("/{model_id}", response_model=LocalModelResponse)
-async def update_local_model(
-    model_id: int,
-    data: LocalModelUpdate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Update a local model."""
-    require_admin_or_staff(current_user)
-    
-    model = await LocalModelService.update_model(db, model_id, data)
-    if not model:
-        raise HTTPException(status_code=404, detail="Model not found")
-    return model_to_response(model)
 
 
-@router.delete("/{model_id}")
-async def delete_local_model(
-    model_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Delete a local model and its files."""
-    require_admin_or_staff(current_user)
-    
-    try:
-        success = await LocalModelService.delete_model(db, model_id)
-        if not success:
-            raise HTTPException(status_code=404, detail="Model not found")
-        return {"message": "Model deleted successfully"}
-    except LocalModelServiceError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+
+
 
 
 # ============================================
@@ -470,3 +432,53 @@ async def get_models_for_agent(
         )
         for m in models
     ]
+
+
+@router.get("/{model_id}", response_model=LocalModelResponse)
+async def get_local_model(
+    model_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get a specific local model."""
+    from app.services.local_model_service import LocalModelService
+    model = await LocalModelService.get_model(db, model_id)
+    if not model:
+        raise HTTPException(status_code=404, detail="Model not found")
+    return model_to_response(model)
+
+
+@router.patch("/{model_id}", response_model=LocalModelResponse)
+async def update_local_model(
+    model_id: int,
+    data: LocalModelUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Update a local model."""
+    require_admin_or_staff(current_user)
+    
+    from app.services.local_model_service import LocalModelService
+    model = await LocalModelService.update_model(db, model_id, data)
+    if not model:
+        raise HTTPException(status_code=404, detail="Model not found")
+    return model_to_response(model)
+
+
+@router.delete("/{model_id}")
+async def delete_local_model(
+    model_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a local model and its files."""
+    require_admin_or_staff(current_user)
+    
+    from app.services.local_model_service import LocalModelService
+    try:
+        success = await LocalModelService.delete_model(db, model_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Model not found")
+        return {"message": "Model deleted successfully"}
+    except LocalModelServiceError as e:
+        raise HTTPException(status_code=400, detail=str(e))

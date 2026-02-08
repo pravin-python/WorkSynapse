@@ -12,7 +12,8 @@ celery_app = Celery(
         "app.worker.tasks.agents",
         "app.worker.tasks.notifications",
         "app.worker.tasks.analytics",
-        "app.worker.tasks.download_model"
+        "app.worker.tasks.download_model",
+        "app.worker.tasks.rag"
     ]
 )
 

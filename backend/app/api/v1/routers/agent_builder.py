@@ -7,7 +7,7 @@ Includes routes for agents, models, API keys, tools, connections, and MCP server
 """
 
 import logging
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -72,10 +72,7 @@ async def list_models(
             name=model.name,
             display_name=model.display_name,
             provider_id=model.provider_id,
-            provider={
-                "id": model.provider.id if getattr(model, "provider", None) else None,
-                "display_name": model.provider.display_name if getattr(model, "provider", None) else None,
-            },
+            provider=model.provider if getattr(model, "provider", None) else None,
             description=model.description,
             requires_api_key=model.requires_api_key,
             api_key_prefix=model.api_key_prefix,
@@ -281,6 +278,28 @@ async def check_api_key_exists(
             for k in keys
         ]
     }
+
+
+# =============================================================================
+# RESOURCES (Prompts, Knowledge, etc.)
+# =============================================================================
+
+@router.get("/prompt-templates", response_model=List[Dict[str, Any]])
+async def list_prompt_templates(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """List available prompt templates."""
+    return await AgentBuilderService.get_prompt_templates(db)
+
+
+@router.get("/knowledge-sources", response_model=List[Dict[str, Any]])
+async def list_knowledge_sources(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """List available knowledge sources."""
+    return await AgentBuilderService.get_knowledge_sources(db)
 
 
 # =============================================================================

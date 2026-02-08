@@ -174,8 +174,8 @@ class LLMKeyService:
                 "description": "Enterprise-grade AI with Azure OpenAI Service",
                 "icon": "azure_openai",
                 "models": [
-                    {"name": "gpt-4", "display_name": "GPT-4 (Azure)", "context_window": 8192},
-                    {"name": "gpt-35-turbo", "display_name": "GPT-3.5 Turbo (Azure)", "context_window": 16385}
+                    {"name": "azure-gpt-4", "display_name": "GPT-4 (Azure)", "context_window": 8192},
+                    {"name": "azure-gpt-35-turbo", "display_name": "GPT-3.5 Turbo (Azure)", "context_window": 16385}
                 ],
                 "config_schema": {
                     "fields": [

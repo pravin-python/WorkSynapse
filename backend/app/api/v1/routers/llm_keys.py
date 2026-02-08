@@ -25,6 +25,7 @@ from app.schemas.agent_builder import (
     AgentModelCreate, AgentModelUpdate, AgentModelResponse
 )
 from app.services.agent_builder_service import AgentBuilderService
+from app.services.llm_key_service import LLMKeyService, LLMKeyServiceError
 
 
 router = APIRouter()

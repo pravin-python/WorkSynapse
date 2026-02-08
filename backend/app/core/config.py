@@ -160,6 +160,17 @@ class Settings(BaseSettings):
     # OpenAI (for AI agents)
     OPENAI_API_KEY: Optional[str] = None
     OPENAI_MODEL: str = "gpt-4"
+
+    # ===========================================
+    # RAG & EMBEDDINGS
+    # ===========================================
+    EMBEDDING_PROVIDER: str = "openai"  # openai, huggingface, local
+    EMBEDDING_MODEL: Optional[str] = "text-embedding-3-small"
+    RAG_VECTOR_DB_TYPE: str = "chroma"  # chroma, pgvector
+    CHROMA_DB_PATH: str = "chroma_db"
+    
+    # PGVector Connection (uses main DB by default, but can be separate)
+    PGVECTOR_CONNECTION_URI: Optional[str] = None
     
     # Email (for notifications)
     SMTP_HOST: Optional[str] = None
