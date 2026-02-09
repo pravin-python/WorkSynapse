@@ -22,9 +22,10 @@ from app.schemas.local_models import (
     HuggingFaceSearchRequest, HuggingFaceSearchResponse, HuggingFaceModelInfo,
     OllamaListResponse, OllamaModelInfo,
     DownloadStartResponse, DownloadProgressResponse, ModelStatsResponse,
-    AvailableModelForAgent
+    AvailableModelForAgent, ChatRequest, ChatResponse
 )
 from app.services.local_model_service import LocalModelService, LocalModelServiceError
+import ollama
 
 
 router = APIRouter()
@@ -332,6 +333,62 @@ async def search_huggingface_models(
 
 
 # ============================================
+# CHAT / INFERENCE
+# ============================================
+
+@router.post("/chat", response_model=ChatResponse)
+async def chat_with_model(
+    request: ChatRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Chat with a local model using Ollama library."""
+    # Get model to verify it exists and get its name
+    model = await LocalModelService.get_model(db, request.model_id)
+    if not model:
+        raise HTTPException(status_code=404, detail="Model not found")
+        
+    if model.source != ModelSource.OLLAMA:
+        raise HTTPException(status_code=400, detail="Only Ollama models are supported for direct chat")
+
+    try:
+        from fastapi.concurrency import run_in_threadpool
+        
+        # Options for generation
+        options = {
+            "temperature": request.temperature,
+        }
+        if request.max_tokens:
+            options["num_predict"] = request.max_tokens
+
+        # Use ollama library in threadpool to avoid blocking
+        response = await run_in_threadpool(
+            ollama.chat,
+            model=model.name,
+            messages=request.messages,
+            options=options,
+            stream=False
+        )
+        
+        # Record usage
+        await LocalModelService.record_model_usage(db, model.id)
+        
+        return ChatResponse(
+            response=response["message"]["content"],
+            model=response["model"],
+            created_at=str(response["created_at"]),
+            done=response["done"],
+            total_duration=response.get("total_duration"),
+            load_duration=response.get("load_duration"),
+            prompt_eval_count=response.get("prompt_eval_count"),
+            eval_count=response.get("eval_count")
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ollama Error: {str(e)}")
+
+
+# ============================================
 # OLLAMA INTEGRATION
 # ============================================
 
@@ -379,30 +436,28 @@ async def list_local_ollama_models(
 ):
     """List models currently installed in local Ollama instance."""
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get("http://localhost:11434/api/tags")
-            
-            if response.status_code != 200:
-                return OllamaListResponse(models=[], total=0)
-            
-            data = response.json()
-            models = []
-            
-            for m in data.get("models", []):
-                models.append(OllamaModelInfo(
-                    name=m.get("name", ""),
-                    model=m.get("model", m.get("name", "")),
-                    size=m.get("size"),
-                    digest=m.get("digest"),
-                    modified_at=m.get("modified_at"),
-                    is_downloaded=True
-                ))
-            
-            return OllamaListResponse(models=models, total=len(models))
+        from fastapi.concurrency import run_in_threadpool
+        # Use ollama library
+        response = await run_in_threadpool(ollama.list)
+        
+        models = []
+        for m in response.get("models", []):
+            models.append(OllamaModelInfo(
+                name=m.get("name", ""),
+                model=m.get("model", m.get("name", "")),
+                size=m.get("size"),
+                digest=m.get("digest"),
+                modified_at=str(m.get("modified_at")) if m.get("modified_at") else None,
+                is_downloaded=True
+            ))
+        
+        return OllamaListResponse(models=models, total=len(models))
             
     except Exception:
         # Ollama not running
         return OllamaListResponse(models=[], total=0)
+            
+
 
 
 # ============================================

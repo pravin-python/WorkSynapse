@@ -57,7 +57,7 @@ export function Header({ onSidebarToggle, isSidebarOpen }: HeaderProps) {
     useEffect(() => {
         function handleGlobalKeyDown(event: KeyboardEvent) {
             // Ctrl + R to focus search
-            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'r') {
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
                 event.preventDefault(); // Prevent browser refresh
                 searchInputRef.current?.focus();
             }
@@ -96,7 +96,7 @@ export function Header({ onSidebarToggle, isSidebarOpen }: HeaderProps) {
                     ref={searchInputRef}
                     className="global-search"
                     placeholder="Search..."
-                    endAdornment={<div className="kbd-shortcut">Ctrl + R</div>}
+                    endAdornment={<div className="kbd-shortcut">Ctrl + S</div>}
                 />
             </div>
 

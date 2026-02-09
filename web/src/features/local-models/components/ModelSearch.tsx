@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Download, ExternalLink, HardDrive } from 'lucide-react';
-import { localModelsService, HuggingFaceModel, ModelSource } from '../api/localModelsService';
+import React, { useState, useEffect } from 'react';
+import { Download, ExternalLink, HardDrive, Terminal, FileCode } from 'lucide-react';
+import { localModelsService, HuggingFaceModel, OllamaModel, ModelSource } from '../api/localModelsService';
 import { SearchInput } from '../../../components/ui/SearchInput';
 import './ModelSearch.css';
 
@@ -11,18 +11,38 @@ interface ModelSearchProps {
 export const ModelSearch: React.FC<ModelSearchProps> = ({ onDownload }) => {
     const [activeTab, setActiveTab] = useState<'huggingface' | 'ollama'>('huggingface');
     const [query, setQuery] = useState('');
-    const [results, setResults] = useState<HuggingFaceModel[]>([]);
+    const [results, setResults] = useState<(HuggingFaceModel | OllamaModel)[]>([]);
     const [loading, setLoading] = useState(false);
     const [searched, setSearched] = useState(false);
 
+    // Clear state when switching tabs
+    useEffect(() => {
+        setQuery('');
+        setResults([]);
+        setSearched(false);
+    }, [activeTab]);
+
     const executeSearch = async (searchQuery: string) => {
-        if (!searchQuery.trim()) return;
+        if (!searchQuery.trim() && activeTab === 'huggingface') return;
 
         setLoading(true);
         try {
             if (activeTab === 'huggingface') {
                 const response = await localModelsService.searchHuggingFace(searchQuery);
                 setResults(response.models);
+            } else {
+                // For Ollama, we fetch the available list and filter client-side
+                const response = await localModelsService.listOllamaAvailable();
+                let models = response.models;
+
+                if (searchQuery.trim()) {
+                    const lowerQuery = searchQuery.toLowerCase();
+                    models = models.filter(m =>
+                        m.name.toLowerCase().includes(lowerQuery) ||
+                        m.model.toLowerCase().includes(lowerQuery)
+                    );
+                }
+                setResults(models);
             }
         } catch (error) {
             console.error('Search failed:', error);
@@ -42,6 +62,11 @@ export const ModelSearch: React.FC<ModelSearchProps> = ({ onDownload }) => {
         if (num > 1000000) return `${(num / 1000000).toFixed(1)}M`;
         if (num > 1000) return `${(num / 1000).toFixed(1)}k`;
         return num.toString();
+    };
+
+    const formatSize = (bytes?: number) => {
+        if (!bytes) return 'Unknown size';
+        return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
     };
 
     return (
@@ -66,7 +91,7 @@ export const ModelSearch: React.FC<ModelSearchProps> = ({ onDownload }) => {
                     value={query}
                     onChange={setQuery}
                     onSearch={(val) => executeSearch(val)}
-                    placeholder={activeTab === 'huggingface' ? "Search HuggingFace models (e.g., llama-3, mistral)..." : "Search Ollama models..."}
+                    placeholder={activeTab === 'huggingface' ? "Search HuggingFace models (e.g., llama-3, mistral)..." : "Search Ollama models (e.g., llama3, mistral)..."}
                     className="search-input-wrapper"
                     debounceMs={500}
                 />
@@ -82,58 +107,93 @@ export const ModelSearch: React.FC<ModelSearchProps> = ({ onDownload }) => {
                     </div>
                 )}
 
-                {results.map((model) => (
-                    <div key={model.id} className="model-result-card">
-                        <div className="model-info">
-                            <div className="model-header">
-                                <h3>{model.modelId}</h3>
-                                {model.is_downloaded && (
-                                    <span className="badge-downloaded">
-                                        <HardDrive size={12} /> Installed
-                                    </span>
-                                )}
-                            </div>
-                            <div className="model-meta">
-                                <span className="meta-item">
-                                    <Download size={14} /> {formatDownloads(model.downloads)}
-                                </span>
-                                {model.pipeline_tag && (
-                                    <span className="meta-item tag">{model.pipeline_tag}</span>
-                                )}
-                                <span className="meta-item">
-                                    Author: {model.author || 'Unknown'}
-                                </span>
-                            </div>
-                            <div className="model-tags">
-                                {model.tags?.slice(0, 5).map(tag => (
-                                    <span key={tag} className="tag-pill">{tag}</span>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="model-actions">
-                            <a
-                                href={`https://huggingface.co/${model.modelId}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="btn-icon"
-                                title="View on HuggingFace"
-                            >
-                                <ExternalLink size={18} />
-                            </a>
-                            <button
-                                className="btn-download"
-                                disabled={model.is_downloaded}
-                                onClick={() => onDownload(
-                                    model.modelId,
-                                    ModelSource.HUGGINGFACE,
-                                    model.pipeline_tag || 'text-generation'
-                                )}
-                            >
-                                {model.is_downloaded ? 'Installed' : 'Download'}
-                            </button>
-                        </div>
+                {/* Initial state for Ollama - show suggestion if not searched yet */}
+                {!searched && activeTab === 'ollama' && !loading && (
+                    <div className="start-search-hint">
+                        <p className="hint-text">Search for popular models like "llama3", "mistral", "gemma", etc.</p>
+                        <button className="btn-link" onClick={() => executeSearch('')}>
+                            View popular Ollama models
+                        </button>
                     </div>
-                ))}
+                )}
+
+                {results.map((model) => {
+                    // Type guard/check
+                    const isHuggingFace = 'modelId' in model;
+
+                    return (
+                        <div key={isHuggingFace ? (model as HuggingFaceModel).modelId : (model as OllamaModel).name} className="model-result-card">
+                            <div className="model-info">
+                                <div className="model-header">
+                                    <h3>{isHuggingFace ? (model as HuggingFaceModel).modelId : (model as OllamaModel).name}</h3>
+                                    {model.is_downloaded && (
+                                        <span className="badge-downloaded">
+                                            <HardDrive size={12} /> Installed
+                                        </span>
+                                    )}
+                                </div>
+
+                                {isHuggingFace ? (
+                                    // HuggingFace Meta
+                                    <div className="model-meta">
+                                        <span className="meta-item">
+                                            <Download size={14} /> {formatDownloads((model as HuggingFaceModel).downloads)}
+                                        </span>
+                                        {(model as HuggingFaceModel).pipeline_tag && (
+                                            <span className="meta-item tag">{(model as HuggingFaceModel).pipeline_tag}</span>
+                                        )}
+                                        <span className="meta-item">
+                                            Author: {(model as HuggingFaceModel).author || 'Unknown'}
+                                        </span>
+                                    </div>
+                                ) : (
+                                    // Ollama Meta
+                                    <div className="model-meta">
+                                        <span className="meta-item">
+                                            <Terminal size={14} /> {(model as OllamaModel).model}
+                                        </span>
+                                        <span className="meta-item">
+                                            <FileCode size={14} /> {formatSize((model as OllamaModel).size)}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {isHuggingFace && (
+                                    <div className="model-tags">
+                                        {(model as HuggingFaceModel).tags?.slice(0, 5).map(tag => (
+                                            <span key={tag} className="tag-pill">{tag}</span>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="model-actions">
+                                {isHuggingFace && (
+                                    <a
+                                        href={`https://huggingface.co/${(model as HuggingFaceModel).modelId}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="btn-icon"
+                                        title="View on HuggingFace"
+                                    >
+                                        <ExternalLink size={18} />
+                                    </a>
+                                )}
+                                <button
+                                    className="btn-download"
+                                    disabled={model.is_downloaded}
+                                    onClick={() => onDownload(
+                                        isHuggingFace ? (model as HuggingFaceModel).modelId : (model as OllamaModel).name,
+                                        isHuggingFace ? ModelSource.HUGGINGFACE : ModelSource.OLLAMA,
+                                        isHuggingFace ? ((model as HuggingFaceModel).pipeline_tag || 'text-generation') : 'text-generation'
+                                    )}
+                                >
+                                    {model.is_downloaded ? 'Installed' : 'Download'}
+                                </button>
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );

@@ -244,3 +244,36 @@
     padding: var(--space-2xl);
     color: hsl(var(--color-text-muted));
 }
+
+.start-search-hint {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-md);
+    padding: var(--space-xl);
+    text-align: center;
+    background: hsl(var(--card-bg));
+    border: 1px dashed hsl(var(--color-border));
+    border-radius: var(--radius-lg);
+}
+
+.hint-text {
+    color: hsl(var(--color-text-secondary));
+    font-size: 0.95rem;
+}
+
+.btn-link {
+    background: none;
+    border: none;
+    color: hsl(var(--color-primary));
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: underline;
+    font-size: 0.95rem;
+    padding: 0;
+}
+
+.btn-link:hover {
+    color: hsl(var(--color-primary-hover));
+}

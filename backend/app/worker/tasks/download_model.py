@@ -259,45 +259,38 @@ def download_ollama_model(self, model_db_id: int, model_name: str, target_path: 
         except Exception:
             raise Exception("Ollama is not running. Please start Ollama first.")
         
-        # Pull the model using Ollama API
-        pull_url = "http://localhost:11434/api/pull"
+        # Pull the model using Ollama library
+        client = ollama.Client(host="http://localhost:11434")
         
-        with requests.post(
-            pull_url,
-            json={"name": model_name},
-            stream=True,
-            timeout=3600
-        ) as response:
-            response.raise_for_status()
-            
-            for line in response.iter_lines():
-                if not line:
-                    continue
+        try:
+            current_digest = ""
+            for progress in client.pull(model_name, stream=True):
+                status = progress.get("status", "")
                 
-                try:
-                    data = json.loads(line)
-                    status = data.get("status", "")
+                # Update status
+                if "pulling" in status.lower() and progress.get("total"):
+                    total = progress.get("total", 0)
+                    completed = progress.get("completed", 0)
                     
-                    if "pulling" in status.lower():
-                        # Parse progress from status
-                        total = data.get("total", 0)
-                        completed = data.get("completed", 0)
+                    if total > 0:
+                        percent = (completed / total) * 100
+                        update_model_status_sync(model_db_id, ModelStatus.DOWNLOADING, percent)
                         
-                        if total > 0:
-                            percent = (completed / total) * 100
-                            update_model_status_sync(model_db_id, ModelStatus.DOWNLOADING, percent)
-                            send_progress_update(
-                                model_db_id, 
-                                percent, 
-                                "downloading",
-                                f"Pulling: {completed / (1024**3):.2f} / {total / (1024**3):.2f} GB"
-                            )
+                        # Only send update every 1% or so to avoid flooding
+                        send_progress_update(
+                            model_db_id, 
+                            percent, 
+                            "downloading",
+                            f"{status}: {completed / (1024**3):.2f} / {total / (1024**3):.2f} GB"
+                        )
+                
+                elif status == "success":
+                    break
                     
-                    if data.get("status") == "success":
-                        break
-                        
-                except json.JSONDecodeError:
-                    continue
+        except ollama.ResponseError as e:
+            raise Exception(f"Ollama API Error: {str(e)}")
+        except Exception as e:
+             raise Exception(f"Ollama Connection Error: {str(e)}")
         
         # Get model info after pull
         show_response = requests.post(

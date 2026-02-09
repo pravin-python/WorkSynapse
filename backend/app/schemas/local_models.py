@@ -232,3 +232,24 @@ class AgentModelBinding(BaseModel):
     local_model_id: Optional[int] = Field(None, description="ID of local model if type is 'local'")
     api_provider: Optional[str] = Field(None, description="Provider name if type is 'api'")
     api_model_name: Optional[str] = Field(None, description="Model name if type is 'api'")
+
+
+class ChatRequest(BaseModel):
+    """Request for chat with local model."""
+    model_id: int
+    messages: List[dict] = Field(..., description="List of messages: [{'role': 'user', 'content': 'hello'}]")
+    temperature: Optional[float] = 0.7
+    max_tokens: Optional[int] = None
+    stream: bool = False
+
+
+class ChatResponse(BaseModel):
+    """Response from chat with local model."""
+    response: str
+    model: str
+    created_at: str
+    done: bool
+    total_duration: Optional[int] = None
+    load_duration: Optional[int] = None
+    prompt_eval_count: Optional[int] = None
+    eval_count: Optional[int] = None
