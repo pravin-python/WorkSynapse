@@ -29,6 +29,8 @@ class LLMProviderCreate(LLMProviderBase):
     """Schema for creating a provider."""
     type: str = "custom"
     config_schema: Optional[Dict[str, Any]] = None
+    purchase_url: Optional[str] = None
+    documentation_url: Optional[str] = None
 
 
 class LLMProviderUpdate(BaseModel):
@@ -38,6 +40,9 @@ class LLMProviderUpdate(BaseModel):
     base_url: Optional[str] = None
     is_active: Optional[bool] = None
     config_schema: Optional[Dict[str, Any]] = None
+    purchase_url: Optional[str] = None
+    documentation_url: Optional[str] = None
+    icon: Optional[str] = None
 
 
 class LLMProviderResponse(LLMProviderBase):
@@ -45,8 +50,10 @@ class LLMProviderResponse(LLMProviderBase):
     id: int
     type: str
     is_active: bool
+    is_system: bool
     config_schema: Optional[Dict[str, Any]] = None
-    config_schema: Optional[Any] = None  # Can be Dict or JSON string
+    purchase_url: Optional[str] = None
+    documentation_url: Optional[str] = None
     created_at: datetime
     
     class Config:

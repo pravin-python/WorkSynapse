@@ -24,6 +24,8 @@ from app.schemas.llm import (
     LLMApiKeyCreate, LLMApiKeyUpdate,
     AIAgentCreate, AIAgentUpdate
 )
+from app.models.agent_builder.model import AgentModel
+from app.schemas.agent_builder import AgentModelCreate, AgentModelUpdate
 from app.utils.encryption import (
     encrypt_api_key, 
     decrypt_api_key, 
@@ -89,13 +91,132 @@ class LLMKeyService:
             base_url=data.base_url,
             requires_api_key=data.requires_api_key,
             icon=data.icon,
-            config_schema=json.dumps(data.config_schema) if data.config_schema else None
+            config_schema=json.dumps(data.config_schema) if data.config_schema else None,
+            purchase_url=data.purchase_url,
+            documentation_url=data.documentation_url,
+            is_system=False  # Custom providers are never system
         )
         db.add(provider)
         await db.commit()
         await db.refresh(provider)
         return provider
     
+    @staticmethod
+    async def update_provider(
+        db: AsyncSession,
+        provider_id: int,
+        data: LLMProviderUpdate
+    ) -> Optional[LLMKeyProvider]:
+        """Update a provider."""
+        provider = await LLMKeyService.get_provider(db, provider_id)
+        if not provider:
+            return None
+            
+        update_data = data.model_dump(exclude_unset=True)
+        
+        # Handle config_schema serialization
+        if "config_schema" in update_data:
+            update_data["config_schema"] = json.dumps(update_data["config_schema"]) if update_data["config_schema"] else None
+            
+        for key, value in update_data.items():
+            setattr(provider, key, value)
+            
+        await db.commit()
+        await db.refresh(provider)
+        return provider
+
+    @staticmethod
+    async def delete_provider(
+        db: AsyncSession,
+        provider_id: int
+    ) -> bool:
+        """Delete a provider (if not system)."""
+        provider = await LLMKeyService.get_provider(db, provider_id)
+        if not provider:
+            return False
+            
+        if provider.is_system:
+            raise LLMKeyServiceError("Cannot delete system provider")
+            
+        await db.delete(provider)
+        await db.commit()
+        return True
+    
+    @staticmethod
+    async def create_provider_model(
+        db: AsyncSession,
+        provider_id: int,
+        data: AgentModelCreate
+    ) -> AgentModel:
+        """Create a new AI model for a provider."""
+        # Verify provider exists
+        provider = await LLMKeyService.get_provider(db, provider_id)
+        if not provider:
+            raise LLMKeyServiceError("Provider not found")
+            
+        # Check for duplicate model name
+        existing = await db.execute(
+            select(AgentModel).where(AgentModel.name == data.name)
+        )
+        if existing.scalar_one_or_none():
+            raise LLMKeyServiceError(f"Model with name '{data.name}' already exists")
+
+        model = AgentModel(
+            name=data.name,
+            display_name=data.display_name,
+            provider_id=provider_id,
+            description=data.description,
+            requires_api_key=data.requires_api_key,
+            api_key_prefix=data.api_key_prefix,
+            base_url=data.base_url,
+            context_window=data.context_window,
+            max_output_tokens=data.max_output_tokens,
+            supports_vision=data.supports_vision,
+            supports_tools=data.supports_tools,
+            supports_streaming=data.supports_streaming,
+            input_price_per_million=data.input_price_per_million,
+            output_price_per_million=data.output_price_per_million,
+            is_active=True
+        )
+        db.add(model)
+        await db.commit()
+        await db.refresh(model)
+        return model
+
+    @staticmethod
+    async def update_provider_model(
+        db: AsyncSession,
+        model_id: int,
+        data: AgentModelUpdate
+    ) -> Optional[AgentModel]:
+        """Update a provider model."""
+        model = await db.get(AgentModel, model_id)
+        if not model:
+            return None
+            
+        update_data = data.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(model, key, value)
+            
+        await db.commit()
+        await db.refresh(model)
+        return model
+
+    @staticmethod
+    async def delete_provider_model(
+        db: AsyncSession,
+        model_id: int
+    ) -> bool:
+        """Soft delete a provider model."""
+        model = await db.get(AgentModel, model_id)
+        if not model:
+            return False
+            
+        model.is_active = False
+        model.is_deprecated = True
+        await db.commit()
+        return True
+
     @staticmethod
     async def seed_default_providers(db: AsyncSession) -> int:
         """Seed default LLM providers and models if they don't exist."""
@@ -265,7 +386,8 @@ class LLMKeyService:
                     base_url=pdata.get("base_url"),
                     requires_api_key=pdata.get("requires_api_key", True),
                     icon=pdata.get("icon"),
-                    config_schema=json.dumps(pdata.get("config_schema")) if pdata.get("config_schema") else None
+                    config_schema=json.dumps(pdata.get("config_schema")) if pdata.get("config_schema") else None,
+                    is_system=True  # Default providers are system providers
                 )
                 db.add(provider)
                 await db.flush() # Flush to get ID

@@ -4,7 +4,7 @@
  * 
  * Displays an AI model provider card with status and actions.
  */
-import { Plus, Check, AlertTriangle, Settings } from 'lucide-react';
+import { Plus, Check, AlertTriangle, Settings, Trash2 } from 'lucide-react';
 import { LLMProvider, getProviderIcon } from '../api/aiModelsService';
 import './ProviderCard.css';
 
@@ -12,9 +12,10 @@ interface ProviderCardProps {
     provider: LLMProvider;
     onAddKey: (provider: LLMProvider) => void;
     onManage?: (provider: LLMProvider) => void;
+    onDelete?: () => void;
 }
 
-export function ProviderCard({ provider, onAddKey, onManage }: ProviderCardProps) {
+export function ProviderCard({ provider, onAddKey, onManage, onDelete }: ProviderCardProps) {
     const icon = getProviderIcon(provider.type);
 
     return (
@@ -57,9 +58,18 @@ export function ProviderCard({ provider, onAddKey, onManage }: ProviderCardProps
                     <button
                         className="btn-icon"
                         onClick={() => onManage(provider)}
-                        title="Manage keys"
+                        title="Manage Provider"
                     >
                         <Settings size={16} />
+                    </button>
+                )}
+                {onDelete && (
+                    <button
+                        className="btn-icon destructive"
+                        onClick={onDelete}
+                        title="Delete Provider"
+                    >
+                        <Trash2 size={16} />
                     </button>
                 )}
             </div>

@@ -115,8 +115,8 @@ class OrchestratorAgent(Base):
     )
     
     # Reverse relationships
-    conversations: Mapped[List["AgentConversation"]] = relationship(
-        "AgentConversation", back_populates="agent", cascade="all, delete-orphan"
+    conversations: Mapped[List["OrchestratorConversation"]] = relationship(
+        "OrchestratorConversation", back_populates="agent", cascade="all, delete-orphan"
     )
     executions: Mapped[List["AgentExecution"]] = relationship(
         "AgentExecution", back_populates="agent", cascade="all, delete-orphan"
@@ -138,8 +138,7 @@ class OrchestratorAgent(Base):
         """Check if agent has a specific permission."""
         return self.permissions.get(permission, False)
 
-
-class AgentConversation(Base):
+class OrchestratorConversation(Base):
     """
     Conversation model for tracking agent chat sessions.
 
@@ -149,7 +148,7 @@ class AgentConversation(Base):
     - Associated metadata
     """
 
-    __tablename__ = "agent_conversations"
+    __tablename__ = "orchestrator_conversations"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     
@@ -175,13 +174,15 @@ class AgentConversation(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     
     # Relationships
-    agent: Mapped["OrchestratorAgent"] = relationship("OrchestratorAgent", back_populates="conversations")
+    agent: Mapped["OrchestratorAgent"] = relationship(
+        "OrchestratorAgent", back_populates="conversations"
+    )
     executions: Mapped[List["AgentExecution"]] = relationship(
         "AgentExecution", back_populates="conversation", cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:
-        return f"<AgentConversation(id={self.id}, thread='{self.thread_id}')>"
+        return f"<OrchestratorConversation(id={self.id}, thread='{self.thread_id}')>"
 
     def add_message(self, role: str, content: str, **kwargs):
         """Add a message to the conversation history."""
@@ -216,7 +217,7 @@ class AgentExecution(Base):
         Integer, ForeignKey("orchestrator_agents.id", ondelete="CASCADE"), index=True
     )
     conversation_id: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("agent_conversations.id", ondelete="SET NULL"), nullable=True
+        Integer, ForeignKey("orchestrator_conversations.id", ondelete="SET NULL"), nullable=True
     )
     
     # User who triggered execution
@@ -249,8 +250,8 @@ class AgentExecution(Base):
     
     # Relationships
     agent: Mapped["OrchestratorAgent"] = relationship("OrchestratorAgent", back_populates="executions")
-    conversation: Mapped[Optional["AgentConversation"]] = relationship(
-        "AgentConversation", back_populates="executions"
+    conversation: Mapped[Optional["OrchestratorConversation"]] = relationship(
+        "OrchestratorConversation", back_populates="executions"
     )
 
     def __repr__(self) -> str:

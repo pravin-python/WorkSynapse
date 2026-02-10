@@ -6,8 +6,6 @@
 }
 
 /* Toolbar Styles */
-/* Toolbar Styles */
-/* Toolbar Styles */
 .page-toolbar {
     display: flex;
     align-items: center;
@@ -426,6 +424,40 @@
     max-width: 600px;
 }
 
+/* Modal Header */
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid hsl(var(--color-border));
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: hsl(var(--color-text));
+}
+
+.close-btn {
+    background: transparent;
+    border: none;
+    color: hsl(var(--color-text-secondary));
+    cursor: pointer;
+    padding: 4px;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-btn:hover {
+    background: hsl(var(--color-surface-hover));
+    color: hsl(var(--color-text));
+}
+
 .form-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -481,4 +513,30 @@
     text-transform: uppercase;
     font-weight: 600;
     opacity: 0.8;
+}
+
+/* Modal Actions */
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-md);
+    margin-top: var(--space-xl);
+    padding-top: var(--space-lg);
+    border-top: 1px solid hsl(var(--color-border));
+}
+
+.btn-text {
+    background: transparent;
+    border: none;
+    color: hsl(var(--color-text-secondary));
+    font-weight: 500;
+    cursor: pointer;
+    padding: 8px 16px;
+    border-radius: var(--radius-md);
+    transition: all 0.2s;
+}
+
+.btn-text:hover {
+    background: hsl(var(--color-surface-hover));
+    color: hsl(var(--color-text));
 }

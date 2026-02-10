@@ -62,6 +62,11 @@ class LLMKeyProvider(Base, AuditMixin):
     # Configuration schema for extra parameters (JSON)
     config_schema: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
+    # System provider fields
+    is_system: Mapped[bool] = mapped_column(Boolean, default=False)  # If True, cannot be deleted
+    purchase_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)  # Link to buy API keys
+    documentation_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)  # Link to docs
+    
     # Relationships
     models: Mapped[List["AgentModel"]] = relationship(
         "AgentModel",

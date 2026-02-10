@@ -14,7 +14,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { agentBuilderApi, AgentModel, AgentApiKey, AvailableTool, CreateAgentDTO, UpdateAgentDTO, RagDocument, PromptTemplate } from '../api/agentBuilderApi';
+import { agentBuilderApi, AgentModel, AgentApiKey, AvailableTool, CreateAgentDTO, UpdateAgentDTO, RagDocument, PromptTemplate, AgentAutonomyLevel } from '../api/agentBuilderApi';
 import { localModelsService, LocalModel } from '../../local-models/api/localModelsService';
 // import { ModelInputWithSuggestions } from './ModelInputWithSuggestions';
 import './AgentBuilderForm.css';
@@ -61,6 +61,12 @@ interface FormData {
     rag_enabled: boolean;
     rag_config: Record<string, unknown>;
 
+    // Autonomy & Actions
+    action_mode_enabled: boolean;
+    autonomy_level: AgentAutonomyLevel;
+    max_steps: number;
+    mcp_enabled: boolean;
+
     // Settings
     is_public: boolean;
     color: string;
@@ -81,6 +87,7 @@ interface SelectedConnection {
     name: string;
     display_name: string;
     config: Record<string, unknown>;
+    description: string;
 }
 
 interface MCPServer {
@@ -96,7 +103,78 @@ interface FormErrors {
     [key: string]: string;
 }
 
-type FormSection = 'basic' | 'model' | 'prompts' | 'knowledge' | 'tools' | 'connections' | 'mcp' | 'review';
+interface ConnectionSchema {
+    fields: {
+        [key: string]: {
+            label: string;
+            type: 'text' | 'password' | 'url';
+            placeholder?: string;
+            description?: string;
+            required?: boolean;
+            validation?: (value: string) => string | null;
+        }
+    };
+    testService: string;
+}
+
+const CONNECTION_SCHEMAS: Record<string, ConnectionSchema> = {
+    github: {
+        fields: {
+            access_token: { label: 'Personal Access Token', type: 'password', required: true, description: 'GitHub PAT with repo scopes.' }
+        },
+        testService: 'github'
+    },
+    slack: {
+        fields: {
+            bot_token: { label: 'Bot Token (xoxb-)', type: 'password', required: true, validation: v => v.startsWith('xoxb-') ? null : 'Must start with xoxb-' },
+            channel_id: { label: 'Default Channel ID', type: 'text', placeholder: 'C12345678' }
+        },
+        testService: 'slack'
+    },
+    telegram: {
+        fields: {
+            bot_token: { label: 'Bot Token', type: 'password', required: true, description: 'Token from @BotFather' },
+            chat_id: { label: 'Chat ID', type: 'text', description: 'Optional default chat ID' }
+        },
+        testService: 'telegram'
+    },
+    gmail: {
+        fields: {
+            credentials_json: { label: 'Service Account JSON', type: 'password', description: 'Paste the full JSON content' },
+            email: { label: 'Impersonated User Email', type: 'text', description: 'Email to impersonate (if using service account)' }
+        },
+        testService: 'gmail'
+    },
+    google_drive: {
+        fields: {
+            credentials_json: { label: 'Service Account JSON', type: 'password', description: 'Paste the full JSON content' },
+            folder_id: { label: 'Root Folder ID', type: 'text', description: 'Optional root folder' }
+        },
+        testService: 'google_drive'
+    },
+    notion: {
+        fields: {
+            api_key: { label: 'Integration Token', type: 'password', required: true }
+        },
+        testService: 'notion' // Backend might not have this yet, generic fallback
+    },
+    jira: {
+        fields: {
+            url: { label: 'Jira URL', type: 'url', required: true },
+            email: { label: 'Email', type: 'text', required: true },
+            api_token: { label: 'API Token', type: 'password', required: true }
+        },
+        testService: 'jira'
+    },
+    discord: {
+        fields: {
+            bot_token: { label: 'Bot Token', type: 'password', required: true }
+        },
+        testService: 'discord'
+    }
+};
+
+type FormSection = 'basic' | 'model' | 'prompts' | 'knowledge' | 'actions' | 'tools' | 'connections' | 'mcp' | 'review';
 
 // ============================================================================
 // COMPONENT
@@ -129,6 +207,7 @@ export const AgentBuilderForm: React.FC = () => {
     // Modals
     const [showApiKeyModal, setShowApiKeyModal] = useState(false);
     const [showToolConfigModal, setShowToolConfigModal] = useState<SelectedTool | null>(null);
+    const [showConnectionModal, setShowConnectionModal] = useState<{ type: string; name: string } | null>(null);
 
     // Form Data
     const [formData, setFormData] = useState<FormData>({
@@ -153,6 +232,10 @@ export const AgentBuilderForm: React.FC = () => {
         memory_config: {},
         rag_enabled: false,
         rag_config: {},
+        action_mode_enabled: false,
+        autonomy_level: AgentAutonomyLevel.LOW,
+        max_steps: 10,
+        mcp_enabled: false,
         is_public: false,
         color: '#6366f1',
         icon: 'robot',
@@ -164,6 +247,7 @@ export const AgentBuilderForm: React.FC = () => {
         { id: 'model', label: 'Model Selection', icon: '🤖' },
         { id: 'prompts', label: 'Prompts', icon: '💬' },
         { id: 'knowledge', label: 'Knowledge & Memory', icon: '🧠' },
+        { id: 'actions', label: 'Actions & Autonomy', icon: '⚡' },
         { id: 'tools', label: 'Tools', icon: '🔧' },
         { id: 'connections', label: 'Connections', icon: '🔗' },
         { id: 'mcp', label: 'MCP Servers', icon: '🔌' },
@@ -238,6 +322,7 @@ export const AgentBuilderForm: React.FC = () => {
                     type: c.connection_type,
                     name: c.name,
                     display_name: c.display_name,
+                    description: c.description || '',
                     config: c.config_json || {},
                 })),
                 mcp_servers: agent.mcp_servers.map(m => ({
@@ -252,6 +337,10 @@ export const AgentBuilderForm: React.FC = () => {
                 memory_config: agent.memory_config || {},
                 rag_enabled: agent.rag_enabled,
                 rag_config: agent.rag_config || {},
+                action_mode_enabled: agent.action_mode_enabled,
+                autonomy_level: agent.autonomy_level,
+                max_steps: agent.max_steps,
+                mcp_enabled: agent.mcp_enabled,
                 is_public: agent.is_public,
                 color: agent.color || '#6366f1',
                 icon: agent.icon || 'robot',
@@ -286,7 +375,7 @@ export const AgentBuilderForm: React.FC = () => {
         if (formData.model_type === 'saas' && formData.model_id && models.length > 0) {
             const model = models.find(m => m.id === formData.model_id);
             if (model && model.provider) {
-                const pName = typeof model.provider === 'string' ? model.provider : model.provider.display_name;
+                const pName = typeof model.provider === 'string' ? model.provider : ((model.provider as any).display_name || (model.provider as any).name);
                 setSelectedProvider(pName);
 
             }
@@ -304,20 +393,27 @@ export const AgentBuilderForm: React.FC = () => {
     }, [modelTab]);
 
     const getUniqueProviders = () => {
+        if (!models || models.length === 0) return [];
+
         const providers = new Set(models
             .map(m => {
                 if (!m.provider) return null;
-                return typeof m.provider === 'string' ? m.provider : m.provider.display_name;
+                // Handle provider as object or string
+                if (typeof m.provider === 'string') return m.provider;
+                // Check for display_name or name
+                // @ts-ignore - Handle potential missing types
+                return m.provider.display_name || m.provider.name || null;
             })
             .filter((p): p is string => Boolean(p))
         );
-        return Array.from(providers);
+        return Array.from(providers).sort();
     };
 
     const getModelsForProvider = (provider: string) => {
         return models.filter(m => {
             if (!m.provider) return false;
-            const pName = typeof m.provider === 'string' ? m.provider : m.provider.display_name;
+            // @ts-ignore
+            const pName = typeof m.provider === 'string' ? m.provider : (m.provider.display_name || m.provider.name);
             return pName === provider;
         });
     };
@@ -333,7 +429,7 @@ export const AgentBuilderForm: React.FC = () => {
             if (currentModel) {
                 const currentProvider = !currentModel.provider
                     ? null
-                    : (typeof currentModel.provider === 'string' ? currentModel.provider : currentModel.provider.display_name);
+                    : (typeof currentModel.provider === 'string' ? currentModel.provider : ((currentModel.provider as any).display_name || (currentModel.provider as any).name));
 
                 if (currentProvider !== provider) {
                     setFormData(prev => ({ ...prev, model_id: null, api_key_id: null }));
@@ -361,7 +457,7 @@ export const AgentBuilderForm: React.FC = () => {
 
                 const pName = !model.provider
                     ? ''
-                    : (typeof model.provider === 'string' ? model.provider : model.provider.display_name);
+                    : (typeof model.provider === 'string' ? model.provider : ((model.provider as any).display_name || (model.provider as any).name));
 
                 if (pName) {
                     const keysRes = await agentBuilderApi.getApiKeys(pName);
@@ -417,21 +513,34 @@ export const AgentBuilderForm: React.FC = () => {
 
                 {modelTab === 'saas' ? (
                     <div className="cloud-models-flow">
-                        {/* Step 1: Provider Selection */}
-                        <div className="form-group">
-                            <label>1. Select Provider</label>
-                            <select
-                                className="form-select"
-                                value={selectedProvider || ''}
-                                onChange={(e) => handleProviderSelect(e.target.value)}
-                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}
-                            >
-                                <option value="">-- Choose a Provider --</option>
-                                {getUniqueProviders().map(provider => (
-                                    <option key={provider} value={provider}>{provider}</option>
-                                ))}
-                            </select>
-                        </div>
+                        {models.length === 0 && !loading ? (
+                            <div className="empty-state" style={{ padding: '30px', textAlign: 'center', border: '2px dashed hsl(var(--color-border))', borderRadius: '12px', background: 'hsl(var(--color-bg))' }}>
+                                <div style={{ fontSize: '2rem', marginBottom: '10px' }}>☁️</div>
+                                <h3 style={{ marginBottom: '10px', color: 'hsl(var(--color-text))' }}>No Cloud Models Available</h3>
+                                <p style={{ color: 'hsl(var(--color-text-muted))' }}>
+                                    There are no cloud models configured in the system.
+                                    Please contact an administrator to seed the model database.
+                                </p>
+                            </div>
+                        ) : (
+                            <>
+                                {/* Step 1: Provider Selection */}
+                                <div className="form-group">
+                                    <label>1. Select Provider</label>
+                                    <select
+                                        className="form-select"
+                                        value={selectedProvider || ''}
+                                        onChange={(e) => handleProviderSelect(e.target.value)}
+                                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                                    >
+                                        <option value="">-- Choose a Provider --</option>
+                                        {getUniqueProviders().map(provider => (
+                                            <option key={provider} value={provider}>{provider}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </>
+                        )}
 
                         {/* Step 2: Model Selection */}
                         {selectedProvider && (
@@ -603,6 +712,45 @@ export const AgentBuilderForm: React.FC = () => {
             ...prev,
             tools: prev.tools.filter(t => t.type !== toolType),
         }));
+    };
+
+    const handleConnectionSave = (type: string, config: Record<string, unknown>) => {
+        setFormData(prev => {
+            const existingIndex = prev.connections.findIndex(c => c.type === type);
+            if (existingIndex >= 0) {
+                // Update
+                const newConns = [...prev.connections];
+                newConns[existingIndex] = { ...newConns[existingIndex], config };
+                return { ...prev, connections: newConns };
+            } else {
+                // Add new (shouldn't happen with current UI flow but safe to have)
+                return prev;
+            }
+        });
+        setShowConnectionModal(null);
+    };
+
+    const toggleConnection = (type: string, name: string, description: string) => {
+        setFormData(prev => {
+            const exists = prev.connections.some(c => c.type === type);
+            if (exists) {
+                return {
+                    ...prev,
+                    connections: prev.connections.filter(c => c.type !== type)
+                };
+            } else {
+                return {
+                    ...prev,
+                    connections: [...prev.connections, {
+                        type,
+                        name,
+                        display_name: name,
+                        description,
+                        config: {}
+                    }]
+                };
+            }
+        });
     };
 
     const handleToolConfigSave = (tool: SelectedTool, config: Record<string, unknown>) => {
@@ -917,6 +1065,15 @@ export const AgentBuilderForm: React.FC = () => {
                     config_json: t.config,
                     is_enabled: t.is_enabled,
                 })),
+
+                connections: formData.connections.map(c => ({
+                    connection_type: c.type,
+                    name: c.name,
+                    display_name: c.display_name || c.name,
+                    description: c.description || '',
+                    config_json: c.config
+                })),
+
                 // Memory & RAG
                 memory_enabled: formData.memory_enabled,
                 memory_config: formData.memory_config,
@@ -933,6 +1090,12 @@ export const AgentBuilderForm: React.FC = () => {
                         requires_auth: m.requires_auth,
                         auth_type: m.auth_type || undefined,
                     })),
+
+                // Autonomy
+                action_mode_enabled: formData.action_mode_enabled,
+                autonomy_level: formData.autonomy_level,
+                max_steps: formData.max_steps,
+                mcp_enabled: formData.mcp_enabled,
             };
 
             if (isEditing && agentId) {
@@ -942,9 +1105,15 @@ export const AgentBuilderForm: React.FC = () => {
             }
 
             navigate('/ai/agents');
-        } catch (error: unknown) {
+        } catch (error: any) {
             console.error('Failed to save agent:', error);
-            setErrors({ submit: (error as Error).message || 'Failed to save agent' });
+            let message = error.message || 'Failed to save agent';
+            if (error.response?.data?.detail) {
+                message = typeof error.response.data.detail === 'string'
+                    ? error.response.data.detail
+                    : JSON.stringify(error.response.data.detail);
+            }
+            setErrors({ submit: message });
         } finally {
             setSaving(false);
         }
@@ -1189,6 +1358,89 @@ export const AgentBuilderForm: React.FC = () => {
         </div>
     );
 
+    const renderActions = () => (
+        <div className="agent-builder-section">
+            <h2 className="section-title">
+                <span className="section-icon">⚡</span>
+                Actions & Autonomy
+            </h2>
+            <p className="section-description">
+                Configure how your agent executes tasks and interacts with tools.
+            </p>
+
+            <div className="form-group">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <label style={{ margin: 0 }}>Action Mode Enabled</label>
+                    <div className="toggle-switch">
+                        <input
+                            type="checkbox"
+                            checked={formData.action_mode_enabled}
+                            onChange={(e) => setFormData(prev => ({ ...prev, action_mode_enabled: e.target.checked }))}
+                            id="action-mode-toggle"
+                        />
+                        <label htmlFor="action-mode-toggle"></label>
+                    </div>
+                </div>
+                <p className="field-hint">
+                    Enables the agent to execute multi-step loops to achieve goals using tools.
+                    If disabled, the agent will only respond with a single message (Chat Mode).
+                </p>
+            </div>
+
+            {formData.action_mode_enabled && (
+                <div className="animation-slide-in">
+                    <div className="form-group">
+                        <label>Autonomy Level</label>
+                        <select
+                            value={formData.autonomy_level}
+                            onChange={(e) => setFormData(prev => ({ ...prev, autonomy_level: e.target.value as AgentAutonomyLevel }))}
+                        >
+                            <option value={AgentAutonomyLevel.LOW}>Low - Ask for permission before critical actions</option>
+                            <option value={AgentAutonomyLevel.MEDIUM}>Medium - Autonomous for safe actions</option>
+                            <option value={AgentAutonomyLevel.HIGH}>High - Fully autonomous (Use with caution)</option>
+                        </select>
+                    </div>
+
+                    <div className="form-group">
+                        <label>Max Steps per Execution: {formData.max_steps}</label>
+                        <input
+                            type="range"
+                            min="1"
+                            max="50"
+                            step="1"
+                            value={formData.max_steps}
+                            onChange={(e) => setFormData(prev => ({ ...prev, max_steps: parseInt(e.target.value) }))}
+                        />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#666' }}>
+                            <span>1 Step</span>
+                            <span>50 Steps</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <hr style={{ margin: '20px 0', border: 'none', borderTop: '1px solid #eee' }} />
+
+            <div className="form-group">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <label style={{ margin: 0 }}>MCP Enabled</label>
+                    <div className="toggle-switch">
+                        <input
+                            type="checkbox"
+                            checked={formData.mcp_enabled}
+                            onChange={(e) => setFormData(prev => ({ ...prev, mcp_enabled: e.target.checked }))}
+                            id="mcp-mode-toggle"
+                        />
+                        <label htmlFor="mcp-mode-toggle"></label>
+                    </div>
+                </div>
+                <p className="field-hint">
+                    Enables the Model Context Protocol (MCP) client to connect to external MCP servers.
+                </p>
+            </div>
+        </div>
+    );
+
     const renderConnections = () => (
         <div className="agent-builder-section">
             <h2 className="section-title">
@@ -1196,26 +1448,57 @@ export const AgentBuilderForm: React.FC = () => {
                 Connections
             </h2>
             <p className="section-description">
-                Connect your agent to external services like GitHub, Slack, etc.
+                Connect your agent to external services. Configure and test credentials before saving.
             </p>
 
             <div className="connections-grid">
                 {[
                     { type: 'github', name: 'GitHub', icon: '🐙', description: 'Connect to GitHub for repo access' },
                     { type: 'slack', name: 'Slack', icon: '💬', description: 'Send messages to Slack channels' },
+                    { type: 'telegram', name: 'Telegram', icon: '📱', description: 'Telegram bot integration' },
+                    { type: 'gmail', name: 'Gmail', icon: '📧', description: 'Read and send emails' },
+                    { type: 'google_drive', name: 'Google Drive', icon: '📁', description: 'Access files in Drive' },
                     { type: 'notion', name: 'Notion', icon: '📔', description: 'Access Notion workspaces' },
-                    { type: 'jira', name: 'Jira', icon: '📋', description: 'Manage Jira issues and projects' },
+                    { type: 'jira', name: 'Jira', icon: '📋', description: 'Manage Jira issues' },
                     { type: 'discord', name: 'Discord', icon: '🎮', description: 'Connect to Discord servers' },
-                ].map(conn => (
-                    <div key={conn.type} className="connection-card">
-                        <span className="connection-icon">{conn.icon}</span>
-                        <h4>{conn.name}</h4>
-                        <p>{conn.description}</p>
-                        <button type="button" className="btn-secondary" disabled>
-                            Connect (Coming Soon)
-                        </button>
-                    </div>
-                ))}
+                ].map(conn => {
+                    const isConnected = formData.connections.some(c => c.type === conn.type);
+                    const connection = formData.connections.find(c => c.type === conn.type);
+                    const hasConfig = connection && Object.keys(connection.config).length > 0;
+
+                    return (
+                        <div key={conn.type} className={`connection-card ${isConnected ? 'active' : ''}`}>
+                            <div className="connection-header">
+                                <span className="connection-icon">{conn.icon}</span>
+                                <h4>{conn.name}</h4>
+                            </div>
+                            <p>{conn.description}</p>
+
+                            <div className="connection-actions">
+                                <button
+                                    type="button"
+                                    className={`btn-toggle ${isConnected ? 'connected' : ''}`}
+                                    onClick={() => toggleConnection(conn.type, conn.name, conn.description)}
+                                >
+                                    {isConnected ? 'Enabled' : 'Enable'}
+                                </button>
+
+                                {isConnected && (
+                                    <button
+                                        type="button"
+                                        className="btn-secondary btn-sm"
+                                        onClick={() => setShowConnectionModal({ type: conn.type, name: conn.name })}
+                                    >
+                                        {hasConfig ? '⚙️ Configure' : '⚠️ Setup Required'}
+                                    </button>
+                                )}
+                            </div>
+                            {isConnected && !hasConfig && (
+                                <div className="config-warning">Configuration missing</div>
+                            )}
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );
@@ -1331,11 +1614,35 @@ export const AgentBuilderForm: React.FC = () => {
                             <dt>Model</dt>
                             <dd>{(selectedModel as any)?.display_name || (selectedModel as any)?.name || 'Not selected'}</dd>
                             <dt>Provider</dt>
-                            <dd>{(selectedModel as any)?.provider || (selectedModel as any)?.source || '-'}</dd>
+                            <dd>
+                                {(() => {
+                                    const p = (selectedModel as any)?.provider;
+                                    if (!p) return (selectedModel as any)?.source || '-';
+                                    return typeof p === 'string' ? p : (p.display_name || p.name);
+                                })()}
+                            </dd>
                             <dt>Temperature</dt>
                             <dd>{formData.temperature}</dd>
                             <dt>Max Tokens</dt>
                             <dd>{formData.max_tokens}</dd>
+                        </dl>
+                    </div>
+
+                    <div className="review-card">
+                        <h3>⚡ Autonomy</h3>
+                        <dl>
+                            <dt>Action Mode</dt>
+                            <dd>{formData.action_mode_enabled ? 'Enabled' : 'Disabled'}</dd>
+                            {formData.action_mode_enabled && (
+                                <>
+                                    <dt>Level</dt>
+                                    <dd>{formData.autonomy_level}</dd>
+                                    <dt>Max Steps</dt>
+                                    <dd>{formData.max_steps}</dd>
+                                </>
+                            )}
+                            <dt>MCP</dt>
+                            <dd>{formData.mcp_enabled ? 'Enabled' : 'Disabled'}</dd>
                         </dl>
                     </div>
 
@@ -1434,6 +1741,7 @@ export const AgentBuilderForm: React.FC = () => {
                     {currentSection === 'model' && renderModelSelection()}
                     {currentSection === 'prompts' && renderPrompts()}
                     {currentSection === 'knowledge' && renderKnowledge()}
+                    {currentSection === 'actions' && renderActions()}
                     {currentSection === 'tools' && renderTools()}
                     {currentSection === 'connections' && renderConnections()}
                     {currentSection === 'mcp' && renderMCPServers()}
@@ -1470,6 +1778,11 @@ export const AgentBuilderForm: React.FC = () => {
                             </button>
                         )}
                     </div>
+                    {errors.submit && (
+                        <div className="error-alert" style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: '#fee2e2', border: '1px solid #ef4444', borderRadius: '0.375rem', color: '#b91c1c' }}>
+                            ⚠️ {errors.submit}
+                        </div>
+                    )}
                 </main>
             </div>
 
@@ -1511,6 +1824,17 @@ export const AgentBuilderForm: React.FC = () => {
                     toolInfo={availableTools.find(t => t.type === showToolConfigModal.type)}
                     onClose={() => setShowToolConfigModal(null)}
                     onSave={(config) => handleToolConfigSave(showToolConfigModal, config)}
+                />
+            )}
+
+            {/* Connection Config Modal */}
+            {showConnectionModal && (
+                <ConnectionConfigModal
+                    type={showConnectionModal.type}
+                    name={showConnectionModal.name}
+                    initialConfig={formData.connections.find(c => c.type === showConnectionModal.type)?.config || {}}
+                    onClose={() => setShowConnectionModal(null)}
+                    onSave={(config) => handleConnectionSave(showConnectionModal.type, config)}
                 />
             )}
         </div>
@@ -1614,6 +1938,127 @@ const ToolConfigModal: React.FC<ToolConfigModalProps> = ({ tool, toolInfo, onClo
                 <div className="modal-actions">
                     <button className="btn-secondary" onClick={onClose}>Cancel</button>
                     <button className="btn-primary" onClick={handleSave}>Save Configuration</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+interface ConnectionConfigModalProps {
+    type: string;
+    name: string;
+    initialConfig: Record<string, unknown>;
+    onClose: () => void;
+    onSave: (config: Record<string, unknown>) => void;
+}
+
+const ConnectionConfigModal: React.FC<ConnectionConfigModalProps> = ({ type, name, initialConfig, onClose, onSave }) => {
+    const [config, setConfig] = useState<Record<string, string>>({});
+    const [testing, setTesting] = useState(false);
+    const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+
+    // Initialize config from props
+    useEffect(() => {
+        const newConfig: Record<string, string> = {};
+        const schema = CONNECTION_SCHEMAS[type];
+        if (schema) {
+            Object.keys(schema.fields).forEach(key => {
+                newConfig[key] = (initialConfig[key] as string) || '';
+            });
+        }
+        setConfig(newConfig);
+    }, [type, initialConfig]);
+
+    const handleTest = async () => {
+        setTesting(true);
+        setTestResult(null);
+        try {
+            const schema = CONNECTION_SCHEMAS[type];
+            if (!schema) {
+                setTestResult({ ok: false, message: 'No test configuration available for this service.' });
+                return;
+            }
+
+            const response = await agentBuilderApi.testConnection(schema.testService, config);
+            setTestResult({
+                ok: response.ok,
+                message: response.message || (response.ok ? 'Connection successful!' : 'Connection failed')
+            });
+        } catch (error: any) {
+            setTestResult({
+                ok: false,
+                message: error.response?.data?.message || error.message || 'Connection failed'
+            });
+        } finally {
+            setTesting(false);
+        }
+    };
+
+    const handleSave = () => {
+        onSave(config);
+    };
+
+    const schema = CONNECTION_SCHEMAS[type];
+
+    if (!schema) {
+        return (
+            <div className="modal-backdrop" onClick={onClose}>
+                <div className="modal-content" onClick={e => e.stopPropagation()}>
+                    <h2>Configure {name}</h2>
+                    <p>Configuration not yet available for this service.</p>
+                    <button className="btn-secondary" onClick={onClose}>Close</button>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="modal-backdrop" onClick={onClose}>
+            <div className="modal-content connection-config-modal" onClick={e => e.stopPropagation()}>
+                <h2>Configure {name}</h2>
+                <p>Enter credentials for {name} to enable this integration.</p>
+
+                <div className="config-form">
+                    {Object.entries(schema.fields).map(([key, field]) => (
+                        <div key={key} className="form-group">
+                            <label>{field.label} {field.required && '*'}</label>
+                            <input
+                                type={field.type}
+                                value={config[key] || ''}
+                                onChange={e => setConfig(prev => ({ ...prev, [key]: e.target.value }))}
+                                placeholder={field.placeholder}
+                            />
+                            {field.description && <p className="field-hint">{field.description}</p>}
+                        </div>
+                    ))}
+                </div>
+
+                {testResult && (
+                    <div className={`test-result ${testResult.ok ? 'success' : 'error'}`} style={{
+                        padding: '10px',
+                        borderRadius: '6px',
+                        marginBottom: '15px',
+                        background: testResult.ok ? '#f0fdf4' : '#fef2f2',
+                        color: testResult.ok ? '#15803d' : '#b91c1c',
+                        border: `1px solid ${testResult.ok ? '#bbf7d0' : '#fecaca'}`
+                    }}>
+                        {testResult.ok ? '✅ ' : '❌ '} {testResult.message}
+                    </div>
+                )}
+
+                <div className="modal-actions" style={{ justifyContent: 'space-between' }}>
+                    <button
+                        className="btn-secondary"
+                        onClick={handleTest}
+                        disabled={testing}
+                        style={{ marginRight: 'auto' }}
+                    >
+                        {testing ? 'Testing...' : 'Test Connection'}
+                    </button>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <button className="btn-secondary" onClick={onClose}>Cancel</button>
+                        <button className="btn-primary" onClick={handleSave}>Save Config</button>
+                    </div>
                 </div>
             </div>
         </div>

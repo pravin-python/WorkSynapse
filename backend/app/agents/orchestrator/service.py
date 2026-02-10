@@ -13,7 +13,7 @@ from sqlalchemy import select, delete, and_
 
 from app.agents.orchestrator.models import (
     OrchestratorAgent,
-    AgentConversation,
+    OrchestratorConversation,
     AgentExecution,
     AgentCreate,
     AgentUpdate,
@@ -342,19 +342,19 @@ class AgentService:
         Returns:
             Dict with conversations and pagination
         """
-        conditions = [AgentConversation.agent_id == agent_id]
+        conditions = [OrchestratorConversation.agent_id == agent_id]
         if user_id:
-            conditions.append(AgentConversation.user_id == user_id)
+            conditions.append(OrchestratorConversation.user_id == user_id)
 
         query = (
-            select(AgentConversation)
+            select(OrchestratorConversation)
             .where(and_(*conditions))
-            .order_by(AgentConversation.created_at.desc())
+            .order_by(OrchestratorConversation.created_at.desc())
         )
 
         # Count
         count_result = await self.db.execute(
-            select(AgentConversation.id).where(and_(*conditions))
+            select(OrchestratorConversation.id).where(and_(*conditions))
         )
         total = len(count_result.all())
 

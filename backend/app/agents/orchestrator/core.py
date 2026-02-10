@@ -29,6 +29,7 @@ from app.agents.orchestrator.exceptions import (
     GraphExecutionError,
 )
 from app.agents.orchestrator.security import SecurityGuard, get_security_guard
+from app.services.mcp_client import MCPClient, MCPTool
 
 logger = logging.getLogger(__name__)
 
@@ -159,6 +160,28 @@ class AgentOrchestrator:
                 for t in tool_configs
             ]
             permissions = agent_config.get("permissions", {})
+            # Load MCP Tools
+            mcp_servers = agent_config.get("mcp_servers", [])
+            if agent_config.get("mcp_enabled", False) and mcp_servers:
+                for server in mcp_servers:
+                    try:
+                        # server is dict with server_url, auth_credentials, etc.
+                        client = MCPClient(
+                            server_url=server.get("server_url"),
+                            auth_token=server.get("encrypted_auth") # Decryption happens in service/model usually, assume clear or handled
+                        )
+                        # Fetch tools (with short timeout)
+                        mcp_tools = await client.list_tools()
+                        self.tool_registry.register_mcp_tools(client, mcp_tools)
+                        
+                        # Add to tool_names/allowed_tools if we want strict permissioning
+                        # For now, we allow all discovered MCP tools if MCP is enabled
+                        for t in mcp_tools:
+                            tool_names.append(t.name)
+                            
+                    except Exception as e:
+                        logger.warning(f"Failed to load MCP tools from server: {e}")
+
             allowed_tools = self.tool_registry.validate_tools_for_agent(
                 tool_names, permissions
             )
@@ -171,8 +194,11 @@ class AgentOrchestrator:
             else:
                 llm_with_tools = llm
 
+            # Determine mode
+            action_mode = agent_config.get("action_mode_enabled", False)
+            
             # Create and run graph
-            graph = self._build_graph(llm_with_tools, langchain_tools)
+            graph = self._build_graph(llm_with_tools, langchain_tools, action_mode)
             steps.append("build_graph")
 
             # Execute
@@ -180,6 +206,7 @@ class AgentOrchestrator:
                 "configurable": {
                     "thread_id": thread_id,
                 },
+                "recursion_limit": agent_config.get("max_steps", 10) + 1
             }
 
             # Initial state
@@ -289,6 +316,27 @@ class AgentOrchestrator:
             allowed_tools = self.tool_registry.validate_tools_for_agent(
                 tool_names, permissions
             )
+            # Load MCP Tools
+            mcp_servers = agent_config.get("mcp_servers", [])
+            if agent_config.get("mcp_enabled", False) and mcp_servers:
+                for server in mcp_servers:
+                    try:
+                        client = MCPClient(
+                            server_url=server.get("server_url"),
+                            auth_token=server.get("encrypted_auth")
+                        )
+                        mcp_tools_list = await client.list_tools()
+                        self.tool_registry.register_mcp_tools(client, mcp_tools_list)
+                        for t in mcp_tools_list:
+                             if t.name not in tool_names:
+                                 tool_names.append(t.name)
+                    except Exception as e:
+                        logger.warning(f"Failed to load MCP tools in stream: {e}")
+
+            # Re-collect tools including MCP ones
+            allowed_tools = self.tool_registry.validate_tools_for_agent(
+                 tool_names, permissions
+            )
             langchain_tools = self.tool_registry.get_langchain_tools(allowed_tools)
 
             if langchain_tools:
@@ -297,10 +345,12 @@ class AgentOrchestrator:
                 llm_with_tools = llm
 
             # Build graph
-            graph = self._build_graph(llm_with_tools, langchain_tools)
+            action_mode = agent_config.get("action_mode_enabled", False)
+            graph = self._build_graph(llm_with_tools, langchain_tools, action_mode)
 
             config = {
                 "configurable": {"thread_id": thread_id},
+                "recursion_limit": agent_config.get("max_steps", 10) + 1
             }
             state = {"messages": messages}
 
@@ -468,7 +518,7 @@ OUTPUT FORMAT:
 """
         return assembled_prompt.strip()
 
-    def _build_graph(self, llm, tools):
+    def _build_graph(self, llm, tools, action_mode: bool = False):
         """Build the LangGraph execution graph."""
         from langgraph.graph import StateGraph
         from langgraph.graph.message import add_messages
@@ -491,11 +541,24 @@ OUTPUT FORMAT:
             builder.add_node("tools", tool_node)
             
             builder.add_edge(START, "agent")
-            builder.add_conditional_edges(
-                "agent",
-                tools_condition,
-            )
-            builder.add_edge("tools", "agent")
+            
+            # If Action Mode is enabled, allow loop.
+            # If NOT enabled (Assist Mode), we stop after agent generates tool calls creates a "break" (but ToolNode doesn't run)
+            # Actually, standard LangGraph behavior:
+            # If agent returns tool_calls, tools_condition returns "tools".
+            # If we want to STOP before tools in "Assist Mode", we shouldn't add the edge to tools or conditional edge.
+            
+            if action_mode:
+                builder.add_conditional_edges(
+                    "agent",
+                    tools_condition,
+                )
+                builder.add_edge("tools", "agent")
+            else:
+                # In Chat/Assist mode, if tools are present, the LLM allows them,
+                # but we do NOT execute them automatically.
+                # So we just end after agent.
+                builder.add_edge("agent", END)
         else:
             builder.add_edge(START, "agent")
             builder.add_edge("agent", END)

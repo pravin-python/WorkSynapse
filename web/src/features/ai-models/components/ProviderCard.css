@@ -170,3 +170,8 @@
     background: hsl(var(--color-surface-hover));
     color: hsl(var(--color-primary));
 }
+
+.provider-actions .btn-icon.destructive:hover {
+    background: hsl(var(--color-error) / 0.1);
+    color: hsl(var(--color-error));
+}

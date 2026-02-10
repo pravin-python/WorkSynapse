@@ -279,6 +279,9 @@ class OrchestratorConfig(BaseSettings):
                 available_models=["deepseek-chat", "deepseek-coder"],
             ),
         }
+        # Add aliases
+        providers["google"] = providers["gemini"]
+        
         return providers.get(provider)
 
     def get_available_providers(self) -> List[str]:
@@ -289,6 +292,7 @@ class OrchestratorConfig(BaseSettings):
             available.append("openai")
         if self.google_api_key:
             available.append("gemini")
+            available.append("google")
         if self.anthropic_api_key:
             available.append("claude")
         if self.huggingface_api_key:

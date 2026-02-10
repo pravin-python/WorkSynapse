@@ -42,6 +42,7 @@ class LLMRouter:
         "openai": OpenAIProvider,
         "ollama": OllamaProvider,
         "gemini": GeminiProvider,
+        "google": GeminiProvider,  # Alias for gemini
         "claude": ClaudeProvider,
         "huggingface": HuggingFaceProvider,
         "groq": GroqProvider,

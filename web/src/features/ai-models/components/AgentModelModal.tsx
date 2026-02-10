@@ -88,7 +88,7 @@ export function AgentModelModal({ model, onClose, onSubmit }: ModelModalProps) {
     };
 
     return (
-        <div className="modal-overlay">
+        <div className="modal-backdrop">
             <div className="modal-content model-modal">
                 <div className="modal-header">
                     <h2>{isEdit ? 'Edit AI Model' : 'Add New AI Model'}</h2>
@@ -216,13 +216,21 @@ export function AgentModelModal({ model, onClose, onSubmit }: ModelModalProps) {
                             </label>
 
                             {formData.requires_api_key && (
-                                <input
-                                    type="text"
-                                    className="inline-input"
-                                    placeholder="Prefix (e.g. sk-)"
-                                    value={formData.api_key_prefix}
-                                    onChange={e => handleChange('api_key_prefix', e.target.value)}
-                                />
+                                <div className="prefix-input-group">
+                                    <input
+                                        type="text"
+                                        className="inline-input"
+                                        placeholder="Prefix (e.g. sk-)"
+                                        value={formData.api_key_prefix}
+                                        onChange={e => handleChange('api_key_prefix', e.target.value)}
+                                        title="Enter the key prefix (not the full key)"
+                                    />
+                                    {formData.api_key_prefix && formData.api_key_prefix.length > 20 && (
+                                        <div className="input-warning" style={{ fontSize: '0.7rem', color: 'orange', marginTop: '4px' }}>
+                                            Warning: This looks like a full key. This field is for the prefix only.
+                                        </div>
+                                    )}
+                                </div>
                             )}
                         </div>
 

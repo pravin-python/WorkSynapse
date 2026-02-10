@@ -1,0 +1,143 @@
+/* Modal Animation Variables */
+:root {
+    --modal-overlay-bg: rgba(0, 0, 0, 0.4);
+    --modal-backdrop-blur: 4px;
+    --modal-transition-duration: 0.2s;
+    --modal-z-index: 1000;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--modal-overlay-bg);
+    backdrop-filter: blur(var(--modal-backdrop-blur));
+    z-index: var(--modal-z-index);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity var(--modal-transition-duration) ease;
+}
+
+.modal-overlay.open {
+    opacity: 1;
+}
+
+.modal-container {
+    background: hsl(var(--card-bg));
+    border: 1px solid hsl(var(--color-border));
+    border-radius: var(--radius-xl);
+    width: 90%;
+    max-width: 500px;
+    padding: var(--space-xl);
+    box-shadow: var(--shadow-2xl);
+    transform: scale(0.95);
+    transition: transform var(--modal-transition-duration) cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-overlay.open .modal-container {
+    transform: scale(1);
+}
+
+/* Size Variants */
+.modal-sm {
+    max-width: 400px;
+}
+
+.modal-md {
+    max-width: 600px;
+}
+
+.modal-lg {
+    max-width: 800px;
+}
+
+.modal-xl {
+    max-width: 1000px;
+}
+
+.modal-full {
+    max-width: 95vw;
+    height: 95vh;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid hsl(var(--color-border));
+    margin-bottom: var(--space-md);
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: hsl(var(--color-text));
+}
+
+.modal-close {
+    background: transparent;
+    border: none;
+    color: hsl(var(--color-text-muted));
+    cursor: pointer;
+    padding: 4px;
+    border-radius: var(--radius-md);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-close:hover {
+    background: hsl(var(--bg-secondary));
+    color: hsl(var(--color-text));
+}
+
+.modal-content {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-md);
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 1px solid hsl(var(--color-border));
+}
+
+/* Animations */
+@keyframes modal-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes modal-out {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+}

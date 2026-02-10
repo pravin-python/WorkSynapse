@@ -341,7 +341,7 @@ class AgentBuilderService:
         query = (
             select(CustomAgent)
             .options(
-                joinedload(CustomAgent.model),
+                joinedload(CustomAgent.model).joinedload(AgentModel.provider),
                 joinedload(CustomAgent.local_model),
                 joinedload(CustomAgent.api_key)
             )
@@ -372,7 +372,7 @@ class AgentBuilderService:
         query = (
             select(CustomAgent)
             .options(
-                joinedload(CustomAgent.model),
+                joinedload(CustomAgent.model).joinedload(AgentModel.provider),
                 joinedload(CustomAgent.api_key),
                 selectinload(CustomAgent.tools),
                 selectinload(CustomAgent.connections),
@@ -401,7 +401,7 @@ class AgentBuilderService:
         query = (
             select(CustomAgent)
             .options(
-                joinedload(CustomAgent.model),
+                joinedload(CustomAgent.model).joinedload(AgentModel.provider),
                 joinedload(CustomAgent.api_key),
                 selectinload(CustomAgent.tools),
                 selectinload(CustomAgent.connections),
@@ -493,6 +493,12 @@ class AgentBuilderService:
             memory_config=data.memory_config,
             rag_enabled=data.rag_enabled,
             rag_config=data.rag_config,
+            # Action Mode / Autonomy
+            action_mode_enabled=data.action_mode_enabled,
+            autonomy_level=data.autonomy_level,
+            max_steps=data.max_steps,
+            mcp_enabled=data.mcp_enabled,
+            
             is_public=data.is_public,
             avatar_url=data.avatar_url,
             color=data.color,
@@ -583,8 +589,10 @@ class AgentBuilderService:
             "name", "description", "temperature", "max_tokens", "top_p",
             "frequency_penalty", "presence_penalty", "system_prompt",
             "goal_prompt", "service_prompt", "is_public", "avatar_url",
+            "goal_prompt", "service_prompt", "is_public", "avatar_url",
             "color", "icon", "memory_enabled", "memory_config",
-            "rag_enabled", "rag_config"
+            "rag_enabled", "rag_config",
+            "action_mode_enabled", "autonomy_level", "max_steps", "mcp_enabled"
         ]
         
         for field in update_fields:

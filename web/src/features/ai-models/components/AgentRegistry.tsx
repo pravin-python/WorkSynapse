@@ -2,12 +2,13 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import {
     Plus, RefreshCw, Filter, LayoutGrid
 } from 'lucide-react';
-import {
+import aiModelsService, {
     AgentModel, getAgentModels, createAgentModel, updateAgentModel, deleteAgentModel,
     AgentModelCreate, AgentModelUpdate, LLMProvider
 } from '../api/aiModelsService';
 import { AgentModelCard } from '../components/AgentModelCard';
 import { AgentModelModal } from '../components/AgentModelModal';
+import { ConfirmModal } from '../../../components/ui/modals';
 import { SearchInput } from '../../../components/ui/SearchInput';
 import { useDebounce } from '../../../hooks/useDebounce';
 import '../styles/AgentRegistry.css';
@@ -23,9 +24,22 @@ export function AgentRegistry() {
     const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
     const [availableProviders, setAvailableProviders] = useState<LLMProvider[]>([]);
 
+    // Confirm Modal State
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { }
+    });
+
     const loadProviders = useCallback(async () => {
         try {
-            const data = await import('../api/aiModelsService').then(m => m.default.getProviders());
+            const data = await aiModelsService.getProviders();
             setAvailableProviders(data);
         } catch (err) {
             console.error('Failed to load providers for filter', err);
@@ -65,19 +79,27 @@ export function AgentRegistry() {
     const handleCreate = async (data: any) => {
         await createAgentModel(data as AgentModelCreate);
         loadModels();
+        setShowModal(false);
     };
 
     const handleUpdate = async (data: any) => {
         if (!editingModel) return;
         await updateAgentModel(editingModel.id, data as AgentModelUpdate);
         loadModels();
+        setShowModal(false);
     };
 
     const handleDelete = async (model: AgentModel) => {
-        if (confirm(`Are you sure you want to soft delete ${model.display_name}?`)) {
-            await deleteAgentModel(model.id);
-            loadModels();
-        }
+        setConfirmModal({
+            isOpen: true,
+            title: 'Delete Agent Model',
+            message: `Are you sure you want to soft delete ${model.display_name}? This will remove it from the available models list.`,
+            onConfirm: async () => {
+                await deleteAgentModel(model.id);
+                loadModels();
+                setConfirmModal(prev => ({ ...prev, isOpen: false }));
+            }
+        });
     };
 
     // Client-side status filtering (backend supports it but we can do it here too if mixed)
@@ -159,7 +181,7 @@ export function AgentRegistry() {
                             key={model.id}
                             model={model}
                             onEdit={(m) => { setEditingModel(m); setShowModal(true); }}
-                            onDelete={handleDelete}
+                            onDelete={() => handleDelete(model)}
                         />
                     ))}
                 </div>
@@ -172,6 +194,15 @@ export function AgentRegistry() {
                     onSubmit={editingModel ? handleUpdate : handleCreate}
                 />
             )}
+
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                isDestructive={true}
+            />
         </div>
     );
 }

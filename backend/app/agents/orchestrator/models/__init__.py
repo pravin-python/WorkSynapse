@@ -7,9 +7,11 @@ Database models and Pydantic schemas for the Agent Orchestrator.
 
 from app.agents.orchestrator.models.agent_model import (
     OrchestratorAgent,
-    AgentConversation,
+    OrchestratorConversation,
     AgentExecution,
 )
+# AgentConversation (for CustomAgent chats) is in app.models.agent_chat.model
+# OrchestratorConversation (for OrchestratorAgent) is in agent_model above
 from app.agents.orchestrator.models.schemas import (
     AgentCreate,
     AgentUpdate,
@@ -28,7 +30,7 @@ from app.agents.orchestrator.models.schemas import (
 __all__ = [
     # SQLAlchemy models
     "OrchestratorAgent",
-    "AgentConversation",
+    "OrchestratorConversation",
     "AgentExecution",
     # Pydantic schemas
     "AgentCreate",

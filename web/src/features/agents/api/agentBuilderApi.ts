@@ -8,8 +8,15 @@
 import { api } from '../../../services/apiClient';
 
 // ============================================================================
+// ============================================================================
 // TYPES
 // ============================================================================
+
+export enum AgentAutonomyLevel {
+    LOW = 'low',
+    MEDIUM = 'medium',
+    HIGH = 'high'
+}
 
 export interface AgentModel {
     id: number;
@@ -145,6 +152,12 @@ export interface CustomAgent {
     rag_documents?: RagDocument[];
     knowledge_sources?: KnowledgeSource[];
 
+    // Action Mode
+    action_mode_enabled: boolean;
+    autonomy_level: AgentAutonomyLevel;
+    max_steps: number;
+    mcp_enabled: boolean;
+
     status: string;
     is_public: boolean;
     total_sessions: number;
@@ -218,6 +231,12 @@ export interface CreateAgentDTO {
     rag_config?: Record<string, unknown>;
     knowledge_source_ids?: number[];
 
+    // Action Mode
+    action_mode_enabled?: boolean;
+    autonomy_level?: AgentAutonomyLevel;
+    max_steps?: number;
+    mcp_enabled?: boolean;
+
     is_public?: boolean;
     avatar_url?: string;
     color?: string;
@@ -248,6 +267,12 @@ export interface UpdateAgentDTO {
     rag_enabled?: boolean;
     rag_config?: Record<string, unknown>;
     knowledge_source_ids?: number[];
+
+    // Action Mode
+    action_mode_enabled?: boolean;
+    autonomy_level?: AgentAutonomyLevel;
+    max_steps?: number;
+    mcp_enabled?: boolean;
 
     status?: string;
     is_public?: boolean;
@@ -294,6 +319,24 @@ export interface CreateMCPServerDTO {
     requires_auth?: boolean;
     auth_type?: string;
     auth_credentials?: string;
+}
+
+export interface AgentExecutionRequest {
+    message: string;
+    conversation_id?: number;
+    thread_id?: string;
+    stream?: boolean;
+    metadata?: Record<string, unknown>;
+}
+
+export interface AgentExecutionResponse {
+    response: string;
+    thread_id?: string;
+    tool_calls: Array<{ name: string; arguments: Record<string, unknown> }>;
+    tokens_input: number;
+    tokens_output: number;
+    tokens_total: number;
+    duration_ms: number;
 }
 
 // ============================================================================
@@ -359,6 +402,9 @@ export const agentBuilderApi = {
     checkAgentCreation: (modelId: number) =>
         api.post<AgentCreationCheck>(`${BASE_URL}/agents/check-creation`, { model_id: modelId }),
 
+    executeAgent: (agentId: number, data: AgentExecutionRequest) =>
+        api.post<AgentExecutionResponse>(`${BASE_URL}/agents/${agentId}/execute`, data),
+
     // Tools
     getAvailableTools: () =>
         api.get<AvailableTool[]>(`${BASE_URL}/tools/available`),
@@ -397,6 +443,35 @@ export const agentBuilderApi = {
 
     deleteRagDocument: (documentId: number) =>
         api.delete<{ message: string }>(`/rag/documents/${documentId}`),
+
+    // Integrations Testing
+    testConnection: (service: string, config: Record<string, unknown>) => {
+        // Map service to endpoint
+        const endpointMap: Record<string, string> = {
+            slack: '/integrations/test/slack',
+            teams: '/integrations/test/teams',
+            telegram: '/integrations/test/telegram',
+            whatsapp: '/integrations/test/whatsapp',
+            gmail: '/integrations/test/gmail',
+            google_drive: '/integrations/test/google_drive',
+            google_chat: '/integrations/test/google_chat',
+            n8n: '/integrations/test/n8n_webhook',
+            mcp: '/integrations/test/mcp',
+        };
+
+        const endpoint = endpointMap[service] || '/integrations/test';
+
+        // If falling back to generic endpoint, structure data accordingly
+        if (endpoint === '/integrations/test') {
+            return api.post<{ ok: boolean; message: string; details?: Record<string, unknown> }>(endpoint, {
+                type: 'tool',
+                service,
+                config
+            });
+        }
+
+        return api.post<{ ok: boolean; message: string; details?: Record<string, unknown> }>(endpoint, config);
+    },
 };
 
 export default agentBuilderApi;

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-    Eye, Wrench, Zap, Key, MoreVertical
+    Eye, Wrench, Zap, Key, MoreVertical, Database
 } from 'lucide-react';
 import aiModelsService, { AgentModel } from '../api/aiModelsService';
 // import './AgentModelCard.css'; // Will use AIModelsPage.css for now or add new styles
@@ -65,38 +65,10 @@ export function AgentModelCard({ model, onEdit, onDelete }: AgentModelCardProps)
                     {showMenu && (
                         <div className="dropdown-menu">
                             <button onClick={() => onEdit(model)}>Edit Model</button>
-                            {/* <button className="danger" onClick={() => onDelete(model)}>Soft Delete</button> */}
-                            {/* 
-                                User asked for "Edit, Disable, Deprecate".
-                                Delete via onDelete prop calls deleteAgentModel (soft delete).
-                                Maybe we should have separate actions or just use Edit for status changes?
-                                The prompt says "Add 3-dot menu: Edit Model, Disable Model, Deprecate Model".
-                                I'll implement those specific actions by passing them or handling them here.
-                                For now, simple "Edit" is cleanest, let the Edit Modal handle status changes?
-                                But spec says specific menu items.
-                                I'll assume `onEdit` opens the modal where you can change status,
-                                OR I should implement `onDisable` and `onDeprecate` separately.
-                                To save complexity, I'll pass onStatusChange callback or just onEdit.
-                                Let's follow spec strictly: 
-                                - Edit Model
-                                - Disable Model
-                                - Deprecate Model
-                                I'll add those buttons.
-                            */}
-                            <button onClick={() => onEdit(model)}>Edit Model</button>
                             <button
                                 className="warning"
-                                onClick={() => {
-                                    // Hack: Update via onEdit/parent or a direct call? 
-                                    // I'll call onEdit with a modified version or add a separate prop?
-                                    // Better: Parent handles "updateModel" call.
-                                    // I'll stick to onEdit opening modal for full control, 
-                                    // AND add quick actions if needed, but Modal is safer.
-                                    // Wait, the spec says "Card Actions (Top Right Menu): Edit, Disable, Deprecate".
-                                    // I'll expose these as specific callback triggers if possible, or just use onEdit and onDelete.
-                                    // I'll stick to onEdit for now for simplicity in this file, or add more props.
-                                    onEdit(model);
-                                }}
+                                onClick={() => onEdit(model)}
+                                title="Configure model status and settings"
                             >
                                 Configure
                             </button>
@@ -150,7 +122,3 @@ export function AgentModelCard({ model, onEdit, onDelete }: AgentModelCardProps)
         </div>
     );
 }
-
-// Helper icons
-// import in file header
-import { Database } from 'lucide-react';

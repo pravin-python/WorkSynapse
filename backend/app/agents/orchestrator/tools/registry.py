@@ -8,11 +8,12 @@ Handles tool loading, caching, and lookup.
 
 import logging
 from typing import Any, Dict, List, Optional, Type
-from langchain_core.tools import BaseTool as LangChainBaseTool
+from langchain_core.tools import BaseTool as LangChainBaseTool, StructuredTool
 
 from app.agents.orchestrator.tools.base import BaseTool, ToolResult
 from app.agents.orchestrator.exceptions import ToolNotFoundError
 from app.agents.orchestrator.config import get_orchestrator_config
+from app.services.mcp_client import MCPClient, MCPTool
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,53 @@ class ToolRegistry:
             self._categories[category].append(name)
 
         logger.debug(f"Registered tool: {name} in category {category}")
+
+    def register_mcp_tools(self, mcp_client: MCPClient, tools: List[MCPTool]) -> None:
+        """
+        Dynamically register tools from an MCP server.
+
+        Args:
+            mcp_client: The connected MCP client
+            tools: List of MCP tools to register
+        """
+        for tool_data in tools:
+            # Create a dynamic LangChain tool wrapper
+            tool_name = tool_data.name
+            description = tool_data.description or "No description provided"
+            
+            # Define the async function that calls the MCP client
+            async def _mcp_tool_func(**kwargs) -> Any:
+                 return await mcp_client.call_tool(tool_name, kwargs)
+
+            # Create StructuredTool
+            mcp_tool = StructuredTool.from_function(
+                func=None,
+                coroutine=_mcp_tool_func,
+                name=tool_name,
+                description=description,
+                # args_schema=... # TODO: Convert JSON schema to Pydantic if needed
+                # For now, relying on dynamic kwargs
+            )
+            
+            # Store in a separate registry or special category for MCP tools
+            # Here we wrap it in a BaseTool compatible class or store mostly for retrieval
+            # Since our architecture expects BaseTool classes, we might need a bridge.
+            # However, get_langchain_tools returns LangChainBaseTool.
+            
+            # We will store these in a separate dictionary for runtime lookup
+            if not hasattr(self, "_dynamic_mcp_tools"):
+                self._dynamic_mcp_tools = {}
+            
+            self._dynamic_mcp_tools[tool_name] = mcp_tool
+            
+            # Add to categories
+            category = "mcp"
+            if category not in self._categories:
+                self._categories[category] = []
+            if tool_name not in self._categories[category]:
+                self._categories[category].append(tool_name)
+                
+            logger.info(f"Registered MCP tool: {tool_name}")
 
     def get_tool(
         self,
@@ -107,6 +155,12 @@ class ToolRegistry:
         tool = self.get_tool(name, config)
         return tool.to_langchain_tool()
 
+    def get_mcp_tool(self, name: str) -> Optional[LangChainBaseTool]:
+        """Get a registered MCP tool instance."""
+        if hasattr(self, "_dynamic_mcp_tools") and name in self._dynamic_mcp_tools:
+            return self._dynamic_mcp_tools[name]
+        return None
+
     def get_langchain_tools(
         self,
         names: List[str],
@@ -134,6 +188,12 @@ class ToolRegistry:
                 logger.warning(f"Tool not found: {name}")
             except Exception as e:
                 logger.error(f"Error loading tool {name}: {e}")
+
+        # Add MCP tools if found in dynamic registry
+        if hasattr(self, "_dynamic_mcp_tools"):
+             for name in names:
+                 if name in self._dynamic_mcp_tools:
+                     tools.append(self._dynamic_mcp_tools[name])
 
         return tools
 

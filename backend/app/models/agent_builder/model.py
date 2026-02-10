@@ -54,6 +54,13 @@ class CustomAgentStatus(str, Enum):
     ERROR = "error"
 
 
+class AgentAutonomyLevel(str, Enum):
+    """Level of agent autonomy."""
+    LOW = "low"        # Tool use requires approval
+    MEDIUM = "medium"  # Can use safe tools autonomously
+    HIGH = "high"      # Fully autonomous execution
+
+
 class AgentToolType(str, Enum):
     """Types of agent tools."""
     GITHUB = "github"
@@ -109,7 +116,7 @@ class AgentModel(Base, AuditMixin):
     
     # API requirements
     requires_api_key: Mapped[bool] = mapped_column(Boolean, default=True)
-    api_key_prefix: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)  # e.g., "sk-"
+    api_key_prefix: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)  # e.g., "sk-"
     base_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     
     # Model specifications
@@ -259,6 +266,15 @@ class CustomAgent(Base, AuditMixin):
     rag_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     rag_config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     
+    # Action Mode / Autonomy
+    action_mode_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    autonomy_level: Mapped[AgentAutonomyLevel] = mapped_column(
+        SQLEnum(AgentAutonomyLevel, values_callable=lambda obj: [e.value for e in obj]),
+        default=AgentAutonomyLevel.LOW
+    )
+    max_steps: Mapped[int] = mapped_column(Integer, default=10)
+    mcp_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+
     # Status
     status: Mapped[CustomAgentStatus] = mapped_column(
         SQLEnum(CustomAgentStatus, values_callable=lambda obj: [e.value for e in obj]),
@@ -312,6 +328,11 @@ class CustomAgent(Base, AuditMixin):
         "AgentPromptTemplate",
         back_populates="agent",
         uselist=False,
+        cascade="all, delete-orphan"
+    )
+    actions: Mapped[List["CustomAgentAction"]] = relationship(
+        "CustomAgentAction",
+        back_populates="agent",
         cascade="all, delete-orphan"
     )
     
@@ -533,4 +554,25 @@ class AgentRuntimePromptData(Base, AuditMixin):
 
     # Relationships
     agent: Mapped["CustomAgent"] = relationship("CustomAgent")
+
+
+class CustomAgentAction(Base, AuditMixin):
+    """
+    Defines allowed actions or workflows for a custom agent.
+    """
+    __tablename__ = "custom_agent_actions"
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    agent_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("custom_agents.id", ondelete="CASCADE"),
+        nullable=False
+    )
+    action_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    trigger_type: Mapped[str] = mapped_column(String(50), default="manual")  # manual, auto, event
+    config_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
+    # Relationships
+    agent: Mapped["CustomAgent"] = relationship("CustomAgent", back_populates="actions")
 

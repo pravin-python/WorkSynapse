@@ -35,8 +35,11 @@ from app.schemas.agent_builder import (
     ValidateAgentRequest, ValidateAgentResponse,
     AvailableToolInfo, AvailableConnectionInfo,
     # Enums
-    CustomAgentStatusEnum, AgentToolTypeEnum
+    CustomAgentStatusEnum, AgentToolTypeEnum, AgentAutonomyLevel,
+    # Execution
+    AgentExecutionRequest, AgentExecutionResponse,
 )
+from app.agents.orchestrator.core import get_orchestrator
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -342,6 +345,19 @@ async def list_agents(
             service_prompt=agent.service_prompt,
             status=CustomAgentStatusEnum(agent.status.value),
             is_public=agent.is_public,
+            
+            # Memory & RAG
+            memory_enabled=agent.memory_enabled,
+            memory_config=agent.memory_config,
+            rag_enabled=agent.rag_enabled,
+            rag_config=agent.rag_config,
+            
+            # Action Mode
+            action_mode_enabled=agent.action_mode_enabled,
+            autonomy_level=AgentAutonomyLevel(agent.autonomy_level.value),
+            max_steps=agent.max_steps,
+            mcp_enabled=agent.mcp_enabled,
+            
             total_sessions=agent.total_sessions,
             total_messages=agent.total_messages,
             total_tokens_used=agent.total_tokens_used,
@@ -398,6 +414,19 @@ async def get_agent(
         service_prompt=agent.service_prompt,
         status=CustomAgentStatusEnum(agent.status.value),
         is_public=agent.is_public,
+        
+        # Memory & RAG
+        memory_enabled=agent.memory_enabled,
+        memory_config=agent.memory_config,
+        rag_enabled=agent.rag_enabled,
+        rag_config=agent.rag_config,
+        
+        # Action Mode
+        action_mode_enabled=agent.action_mode_enabled,
+        autonomy_level=AgentAutonomyLevel(agent.autonomy_level.value),
+        max_steps=agent.max_steps,
+        mcp_enabled=agent.mcp_enabled,
+        
         total_sessions=agent.total_sessions,
         total_messages=agent.total_messages,
         total_tokens_used=agent.total_tokens_used,
@@ -551,6 +580,19 @@ async def activate_agent(
             service_prompt=agent.service_prompt,
             status=CustomAgentStatusEnum(agent.status.value),
             is_public=agent.is_public,
+
+            # Memory & RAG
+            memory_enabled=agent.memory_enabled,
+            memory_config=agent.memory_config,
+            rag_enabled=agent.rag_enabled,
+            rag_config=agent.rag_config,
+            
+            # Action Mode
+            action_mode_enabled=agent.action_mode_enabled,
+            autonomy_level=AgentAutonomyLevel(agent.autonomy_level.value),
+            max_steps=agent.max_steps,
+            mcp_enabled=agent.mcp_enabled,
+
             total_sessions=agent.total_sessions,
             total_messages=agent.total_messages,
             total_tokens_used=agent.total_tokens_used,
@@ -760,3 +802,97 @@ async def remove_mcp_server_from_agent(
         return {"message": "MCP server removed successfully"}
     except AgentBuilderServiceError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+# =============================================================================
+# EXECUTION
+# =============================================================================
+
+@router.post("/agents/{agent_id}/execute", response_model=AgentExecutionResponse)
+async def execute_custom_agent(
+    agent_id: int,
+    request: AgentExecutionRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Execute a custom agent with a message.
+    """
+    agent = await AgentBuilderService.get_agent(db, agent_id, current_user.id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+        
+    # Build agent config for orchestrator
+    tools_config = []
+    if agent.tools:
+        tools_config = [
+            {
+                "name": t.tool_name,
+                "type": t.tool_type.value,
+                "config": t.config_json
+            }
+            for t in agent.tools if t.is_enabled
+        ]
+
+    mcp_servers_config = []
+    if agent.mcp_servers:
+        mcp_servers_config = [
+            {
+                "server_name": m.server_name,
+                "server_url": m.server_url,
+                "encrypted_auth": m.encrypted_auth,
+            }
+            for m in agent.mcp_servers if m.is_enabled
+        ]
+            
+    agent_config = {
+        "id": agent.id,
+        "name": agent.name,
+        "system_prompt": agent.system_prompt,
+        "goal": agent.goal_prompt,
+        "llm_provider": agent.model.provider.name if agent.model and agent.model.provider else "openai", # Fallback
+        "model_name": agent.model.name if agent.model else "gpt-4o",
+        "temperature": agent.temperature,
+        "max_tokens": agent.max_tokens,
+        "tools": tools_config,
+        "mcp_enabled": agent.mcp_enabled,
+        "mcp_servers": mcp_servers_config,
+        "action_mode_enabled": agent.action_mode_enabled,
+        "max_steps": agent.max_steps,
+        "permissions": {}, # TODO: Add permissions model to CustomAgent
+    }
+    
+    orchestrator = get_orchestrator()
+    
+    try:
+        if request.stream:
+             # Streaming not yet implemented in this simplified endpoint, fallback to sync
+             # or raise error. For now, just run normally.
+             pass
+
+        result = await orchestrator.run(
+            agent_config=agent_config,
+            message=request.message,
+            thread_id=str(request.thread_id) if request.thread_id else None,
+            metadata=request.metadata,
+        )
+        
+        return AgentExecutionResponse(
+            response=result.response,
+            thread_id=request.thread_id, # Return original or generated
+            tool_calls=[
+                {"name": tc.get("name", ""), "arguments": tc.get("args", {})}
+                for tc in result.tool_calls
+            ],
+            tokens_input=result.tokens_input,
+            tokens_output=result.tokens_output,
+            tokens_total=result.tokens_total,
+            duration_ms=result.duration_ms,
+        )
+        
+    except Exception as e:
+        logger.error(f"Custom agent execution error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )

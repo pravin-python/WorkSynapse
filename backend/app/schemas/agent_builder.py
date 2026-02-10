@@ -6,6 +6,7 @@ Pydantic schemas for the Custom Agent Builder API.
 Includes validation, creation, update, and response schemas.
 """
 
+import uuid
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -20,12 +21,19 @@ from app.schemas.rag import RagDocumentResponse
 # =============================================================================
 
 
+
 class CustomAgentStatusEnum(str, Enum):
     DRAFT = "draft"
     ACTIVE = "active"
     PAUSED = "paused"
     ARCHIVED = "archived"
     ERROR = "error"
+
+
+class AgentAutonomyLevel(str, Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
 
 
 class AgentToolTypeEnum(str, Enum):
@@ -360,6 +368,12 @@ class CustomAgentCreate(CustomAgentBase):
     rag_config: Optional[Dict[str, Any]] = None
     knowledge_source_ids: Optional[List[int]] = None
     
+    # Action Mode
+    action_mode_enabled: bool = False
+    autonomy_level: AgentAutonomyLevel = AgentAutonomyLevel.LOW
+    max_steps: int = Field(default=10, ge=1, le=100)
+    mcp_enabled: bool = False
+
     # Optional nested configurations (for creation in one call)
     tools: Optional[List[AgentToolConfigCreate]] = None
     connections: Optional[List[AgentConnectionCreate]] = None
@@ -409,6 +423,10 @@ class CustomAgentUpdate(BaseModel):
     avatar_url: Optional[str] = None
     color: Optional[str] = None
     icon: Optional[str] = None
+    action_mode_enabled: Optional[bool] = None
+    autonomy_level: Optional[AgentAutonomyLevel] = None
+    max_steps: Optional[int] = Field(default=None, ge=1, le=100)
+    mcp_enabled: Optional[bool] = None
 
 
 class CustomAgentResponse(CustomAgentBase):
@@ -437,6 +455,12 @@ class CustomAgentResponse(CustomAgentBase):
     memory_config: Optional[Dict[str, Any]] = None
     rag_enabled: bool
     rag_config: Optional[Dict[str, Any]] = None
+    
+    # Action Mode
+    action_mode_enabled: bool
+    autonomy_level: AgentAutonomyLevel
+    max_steps: int
+    mcp_enabled: bool
     
     total_sessions: int
     total_messages: int
@@ -506,6 +530,27 @@ class ValidateAgentResponse(BaseModel):
     is_valid: bool
     errors: List[str] = []
     warnings: List[str] = []
+
+
+# =============================================================================
+# EXECUTION SCHEMAS
+# =============================================================================
+
+class AgentExecutionRequest(BaseModel):
+    message: str
+    conversation_id: Optional[int] = None
+    thread_id: Optional[uuid.UUID] = None
+    stream: bool = False
+    metadata: Optional[Dict[str, Any]] = None
+
+class AgentExecutionResponse(BaseModel):
+    response: str
+    thread_id: Optional[uuid.UUID] = None
+    tool_calls: List[Dict[str, Any]] = Field(default_factory=list)
+    tokens_input: int = 0
+    tokens_output: int = 0
+    tokens_total: int = 0
+    duration_ms: int = 0
 
 
 # =============================================================================

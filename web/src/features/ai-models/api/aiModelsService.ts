@@ -21,6 +21,9 @@ export interface LLMProvider {
     requires_api_key: boolean;
     icon: string | null;
     is_active: boolean;
+    is_system?: boolean;
+    purchase_url?: string;
+    documentation_url?: string;
     config_schema: any;
     created_at: string;
     has_api_key: boolean;
@@ -125,6 +128,17 @@ export interface LLMProviderCreate {
     available_models?: string[];
 }
 
+export interface LLMProviderUpdate {
+    display_name?: string;
+    description?: string;
+    base_url?: string;
+    requires_api_key?: boolean;
+    icon?: string;
+    config_schema?: any;
+    purchase_url?: string;
+    documentation_url?: string;
+}
+
 // ===========================================
 // PROVIDER ENDPOINTS
 // ===========================================
@@ -148,6 +162,27 @@ export async function getProvider(providerId: number): Promise<LLMProvider> {
  */
 export async function seedProviders(): Promise<{ message: string; count: number }> {
     return api.post('/llm/providers/seed');
+}
+
+/**
+ * Create a new custom provider
+ */
+export async function createProvider(data: LLMProviderCreate): Promise<LLMProvider> {
+    return api.post<LLMProvider>('/llm/providers', data);
+}
+
+/**
+ * Update a provider
+ */
+export async function updateProvider(id: number, data: any): Promise<LLMProvider> {
+    return api.patch<LLMProvider>(`/llm/providers/${id}`, data);
+}
+
+/**
+ * Delete a provider
+ */
+export async function deleteProvider(id: number): Promise<{ message: string }> {
+    return api.delete<{ message: string }>(`/llm/providers/${id}`);
 }
 
 // ===========================================
@@ -437,6 +472,9 @@ const aiModelsService = {
     getProviders,
     getProvider,
     seedProviders,
+    createProvider,
+    updateProvider,
+    deleteProvider,
     // API Keys
     getApiKeys,
     getApiKey,

@@ -48,6 +48,7 @@ const CreateAgentPage = lazy(() => import('./pages/llm/CreateAgentPage'));
 // Agent Builder pages
 const AgentBuilderListPage = lazy(() => import('./features/agents/pages/AgentListPage'));
 const AgentBuilderFormPage = lazy(() => import('./features/agents/components/AgentBuilderForm'));
+const AgentChatPage = lazy(() => import('./features/agents/pages/AgentChatPage'));
 
 // AI Model Management pages
 const AIModelsPage = lazy(() => import('./features/ai-models/pages/AIModelsPage'));
@@ -193,6 +194,7 @@ function AppRoutes() {
                 <Route path="/ai/agents" element={<AgentBuilderListPage />} />
                 <Route path="/ai/agents/create" element={<AgentBuilderFormPage />} />
                 <Route path="/ai/agents/:agentId/edit" element={<AgentBuilderFormPage />} />
+                <Route path="/ai/agents/:agentId/chat" element={<AgentChatPage />} />
                 <Route path="/ai/sessions" element={<AISessionsPage />} />
                 <Route path="/ai/knowledge" element={<KnowledgeBasePage />} />
             </Route>

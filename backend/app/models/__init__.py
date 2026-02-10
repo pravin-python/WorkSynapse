@@ -158,6 +158,22 @@ from app.models.rag import (
     AgentRagDocument,
 )
 
+# Agent Chat Models (AI agent conversations)
+from app.models.agent_chat.model import (
+    AgentConversation,
+    AgentChatMessage,
+    AgentChatFile,
+    AgentChatSenderType,
+    AgentChatMessageType,
+)
+
+# Agent Orchestrator Models
+from app.agents.orchestrator.models import (
+    OrchestratorAgent,
+    OrchestratorConversation,
+    AgentExecution,
+)
+
 
 # All models for Alembic autogenerate
 __all__ = [
@@ -284,4 +300,16 @@ __all__ = [
     "RagDocument",
     "RagChunk",
     "AgentRagDocument",
+
+    # Agent Chat
+    "AgentConversation",
+    "AgentChatMessage",
+    "AgentChatFile",
+    "AgentChatSenderType",
+    "AgentChatMessageType",
+
+    # Orchestrator
+    "OrchestratorAgent",
+    "OrchestratorConversation",
+    "AgentExecution",
 ]

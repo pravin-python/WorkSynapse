@@ -16,6 +16,7 @@ from app.models.user.model import User
 from app.models.llm.model import LLMKeyProvider, LLMApiKey, UserAIAgent
 from app.schemas.llm import (
     LLMProviderResponse, LLMProviderWithKeyStatus,
+    LLMProviderCreate, LLMProviderUpdate,
     LLMApiKeyCreate, LLMApiKeyUpdate, LLMApiKeyResponse,
     AIAgentCreate, AIAgentUpdate, AIAgentResponse,
     AIAgentCreateCheck, AIAgentCreateCheckResponse,
@@ -65,6 +66,9 @@ async def list_providers(
             icon=provider.icon,
             is_active=provider.is_active,
             config_schema=json.loads(provider.config_schema) if provider.config_schema else None,
+            is_system=bool(provider.is_system),
+            purchase_url=provider.purchase_url,
+            documentation_url=provider.documentation_url,
             created_at=provider.created_at,
             has_api_key=len(keys) > 0,
             key_count=len(keys)
@@ -113,6 +117,73 @@ async def seed_providers(
     
     count = await LLMKeyService.seed_default_providers(db)
     return {"message": f"Seeded {count} providers", "count": count}
+
+
+@router.post("/providers", response_model=LLMProviderResponse, status_code=status.HTTP_201_CREATED)
+async def create_provider(
+    data: LLMProviderCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new LLM provider (Admin only)."""
+    if current_user.role.value not in ["ADMIN", "SUPER_ADMIN", "STAFF"]:
+        raise HTTPException(status_code=403, detail="Admin access required")
+        
+    return await LLMKeyService.create_provider(db, data)
+
+
+@router.patch("/providers/{provider_id}", response_model=LLMProviderResponse)
+async def update_provider(
+    provider_id: int,
+    data: LLMProviderUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Update an LLM provider (Admin only)."""
+    if current_user.role.value not in ["ADMIN", "SUPER_ADMIN", "STAFF"]:
+        raise HTTPException(status_code=403, detail="Admin access required")
+        
+    provider = await LLMKeyService.update_provider(db, provider_id, data)
+    if not provider:
+        raise HTTPException(status_code=404, detail="Provider not found")
+    return provider
+
+
+@router.delete("/providers/{provider_id}")
+async def delete_provider(
+    provider_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Delete an LLM provider (Admin only)."""
+    if current_user.role.value not in ["ADMIN", "SUPER_ADMIN"]:
+        raise HTTPException(status_code=403, detail="Admin access required")
+        
+    try:
+        success = await LLMKeyService.delete_provider(db, provider_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Provider not found")
+        return {"message": "Provider deleted successfully"}
+    except LLMKeyServiceError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/providers/{provider_id}/models", response_model=AgentModelResponse, status_code=status.HTTP_201_CREATED)
+async def create_provider_model(
+    provider_id: int,
+    data: AgentModelCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new model for a provider (Admin only)."""
+    if current_user.role.value not in ["ADMIN", "SUPER_ADMIN", "STAFF"]:
+        raise HTTPException(status_code=403, detail="Admin access required")
+        
+    try:
+        return await LLMKeyService.create_provider_model(db, provider_id, data)
+    except LLMKeyServiceError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 
 
 # ============================================
@@ -248,6 +319,46 @@ async def delete_api_key(
         if not success:
             raise HTTPException(status_code=404, detail="API key not found")
         return {"message": "API key deleted successfully"}
+    except LLMKeyServiceError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# ============================================
+# AGENT MODELS (Direct CRUD)
+# ============================================
+
+@router.patch("/models/{model_id}", response_model=AgentModelResponse)
+async def update_model(
+    model_id: int,
+    data: AgentModelUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Update an AI model (Admin only)."""
+    if current_user.role.value not in ["ADMIN", "SUPER_ADMIN", "STAFF"]:
+        raise HTTPException(status_code=403, detail="Admin access required")
+        
+    model = await LLMKeyService.update_provider_model(db, model_id, data)
+    if not model:
+        raise HTTPException(status_code=404, detail="Model not found")
+    return model
+
+
+@router.delete("/models/{model_id}")
+async def delete_model(
+    model_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Delete an AI model (Admin only)."""
+    if current_user.role.value not in ["ADMIN", "SUPER_ADMIN"]:
+        raise HTTPException(status_code=403, detail="Admin access required")
+        
+    try:
+        success = await LLMKeyService.delete_provider_model(db, model_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Model not found")
+        return {"message": "Model deleted successfully"}
     except LLMKeyServiceError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

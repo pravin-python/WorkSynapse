@@ -8,7 +8,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
     Key, Shield, RefreshCw, Check,
-    Database, Cpu, AlertTriangle
+    Database, Cpu, AlertTriangle, Plus
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { ProviderCard } from '../components/ProviderCard';
@@ -17,9 +17,13 @@ import { AddApiKeyModal } from '../components/AddApiKeyModal';
 import aiModelsService, {
     LLMProvider,
     LLMApiKey,
-    LLMApiKeyCreate
+    LLMApiKeyCreate,
+    LLMProviderCreate, LLMProviderUpdate,
+    createProvider, updateProvider, deleteProvider
 } from '../api/aiModelsService';
 import { AgentRegistry } from '../components/AgentRegistry';
+import { ProviderFormModal } from '../components/ProviderFormModal';
+import { ConfirmModal } from '../../../components/ui/modals';
 import './AIModelsPage.css';
 
 export function AIModelsPage() {
@@ -31,6 +35,26 @@ export function AIModelsPage() {
     const [keys, setKeys] = useState<LLMApiKey[]>([]);
     const [selectedProvider, setSelectedProvider] = useState<LLMProvider | null>(null);
     const [showAddModal, setShowAddModal] = useState(false);
+
+    // Provider Access State
+    const [showProviderModal, setShowProviderModal] = useState(false);
+    const [editingProvider, setEditingProvider] = useState<LLMProvider | null>(null);
+
+    // Confirm Modal State
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        isDestructive?: boolean;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { },
+        isDestructive: false
+    });
+
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
@@ -159,6 +183,62 @@ export function AIModelsPage() {
         }
     };
 
+    // Provider Management Handlers
+    const handleAddProvider = () => {
+        setEditingProvider(null);
+        setShowProviderModal(true);
+        setError('');
+    };
+
+    const handleEditProvider = (provider: LLMProvider) => {
+        setEditingProvider(provider);
+        setShowProviderModal(true);
+        setError('');
+    };
+
+    const handleSubmitProvider = async (data: LLMProviderCreate | LLMProviderUpdate) => {
+        setSubmitting(true);
+        try {
+            if (editingProvider) {
+                const updated = await updateProvider(editingProvider.id, data);
+                setProviders(prev => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p));
+                setSuccess(`Provider ${updated.display_name} updated successfully`);
+            } else {
+                const created = await createProvider(data as LLMProviderCreate);
+                setProviders(prev => [...prev, created]);
+                setSuccess(`Provider ${created.display_name} created successfully`);
+            }
+            setShowProviderModal(false);
+            setEditingProvider(null);
+            setTimeout(() => setSuccess(''), 4000);
+        } catch (err: any) {
+            throw err; // FormModal will handle error display if we passed setError
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleDeleteProvider = async (provider: LLMProvider) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Delete Provider',
+            message: `Are you sure you want to delete ${provider.display_name}? This will remove all associated API keys and model configurations. This action cannot be undone.`,
+            isDestructive: true,
+            onConfirm: async () => {
+                try {
+                    await deleteProvider(provider.id);
+                    setProviders(prev => prev.filter(p => p.id !== provider.id));
+                    setSuccess('Provider deleted successfully');
+                    setTimeout(() => setSuccess(''), 3000);
+                } catch (err: any) {
+                    setError(err.response?.data?.detail || 'Failed to delete provider');
+                } finally {
+                    setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                }
+            }
+        });
+    };
+
     // Stats calculations
     const stats = {
         totalProviders: providers.length,
@@ -200,6 +280,12 @@ export function AIModelsPage() {
             ) : (
                 <>
                     <div className="header-actions" style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                        {isAdmin() && (
+                            <button className="btn btn-secondary" onClick={handleAddProvider}>
+                                <Plus size={16} />
+                                Add Custom Provider
+                            </button>
+                        )}
                         <button
                             className="btn btn-secondary"
                             onClick={loadData}
@@ -315,6 +401,8 @@ export function AIModelsPage() {
                                             key={provider.id}
                                             provider={provider}
                                             onAddKey={handleAddKey}
+                                            onManage={isAdmin() ? handleEditProvider : undefined}
+                                            onDelete={isAdmin() && !provider.is_system ? () => handleDeleteProvider(provider) : undefined}
                                         />
                                     ))}
                                 </div>
@@ -358,6 +446,30 @@ export function AIModelsPage() {
                             loading={submitting}
                         />
                     )}
+
+                    {/* Provider Form Modal */}
+                    {showProviderModal && (
+                        <ProviderFormModal
+                            isOpen={showProviderModal}
+                            onClose={() => {
+                                setShowProviderModal(false);
+                                setEditingProvider(null);
+                            }}
+                            onSubmit={handleSubmitProvider}
+                            initialData={editingProvider || undefined}
+                            isLoading={submitting}
+                        />
+                    )}
+
+                    {/* Confirm Modal */}
+                    <ConfirmModal
+                        isOpen={confirmModal.isOpen}
+                        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                        onConfirm={confirmModal.onConfirm}
+                        title={confirmModal.title}
+                        message={confirmModal.message}
+                        isDestructive={confirmModal.isDestructive}
+                    />
                 </>
             )}
         </div>
