@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
     agentChatApi,
     sendMessageStream,
@@ -46,7 +46,6 @@ function getFileIcon(type: string) {
 
 const AgentChatPage: React.FC = () => {
     const { agentId } = useParams<{ agentId: string }>();
-    const navigate = useNavigate();
     const parsedAgentId = parseInt(agentId || '0', 10);
 
     // State

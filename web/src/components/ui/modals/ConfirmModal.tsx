@@ -1,4 +1,3 @@
-import React from 'react';
 import { Modal } from './ModalRoot';
 import { AlertTriangle } from 'lucide-react';
 
