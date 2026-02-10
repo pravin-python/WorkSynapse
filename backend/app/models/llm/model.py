@@ -181,10 +181,10 @@ class UserAIAgent(Base, AuditMixin):
         ForeignKey("llm_key_providers.id", ondelete="RESTRICT"),
         nullable=False
     )
-    api_key_id: Mapped[int] = mapped_column(
+    api_key_id: Mapped[Optional[int]] = mapped_column(
         Integer,
         ForeignKey("llm_api_keys.id", ondelete="RESTRICT"),
-        nullable=False
+        nullable=True
     )
     
     # Agent configuration

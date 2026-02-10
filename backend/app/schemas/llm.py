@@ -5,6 +5,7 @@ LLM Key Management Schemas
 Pydantic schemas for LLM providers, API keys, and AI agents.
 """
 
+import json
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field, field_validator
@@ -56,6 +57,16 @@ class LLMProviderResponse(LLMProviderBase):
     documentation_url: Optional[str] = None
     created_at: datetime
     
+    @field_validator('config_schema', mode='before')
+    @classmethod
+    def parse_config_schema(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except json.JSONDecodeError:
+                return None
+        return v
+
     class Config:
         from_attributes = True
 
@@ -143,7 +154,7 @@ class AIAgentBase(BaseModel):
 class AIAgentCreate(AIAgentBase):
     """Schema for creating an agent."""
     provider_id: int
-    api_key_id: int
+    api_key_id: Optional[int] = None
     type: str = "assistant"
     temperature: float = Field(default=0.7, ge=0, le=2)
     max_tokens: int = Field(default=4096, ge=100, le=128000)

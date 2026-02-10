@@ -22,6 +22,7 @@ export interface AgentModel {
     id: number;
     name: string;
     display_name: string;
+    provider_id: number;
     provider?: { id: number; display_name: string } | string | null;
     description: string | null;
     requires_api_key: boolean;
@@ -40,6 +41,9 @@ export interface AgentModel {
     key_count: number;
 }
 
+/**
+ * Represents an API key for an LLM provider.
+ */
 export interface AgentApiKey {
     id: number;
     provider: string;
@@ -345,11 +349,10 @@ export interface AgentExecutionResponse {
 
 const BASE_URL = '/agent-builder';
 
-// Models
 export const agentBuilderApi = {
     // Models
-    getModels: (provider?: string) =>
-        api.get<AgentModel[]>(`${BASE_URL}/models${provider ? `?provider=${provider}` : ''}`),
+    getModels: (providerId?: number) =>
+        api.get<AgentModel[]>(`${BASE_URL}/models${providerId !== undefined ? `?provider_id=${providerId}` : ''}`),
 
     getModel: (modelId: number) =>
         api.get<AgentModel>(`${BASE_URL}/models/${modelId}`),
@@ -358,8 +361,8 @@ export const agentBuilderApi = {
         api.post<{ message: string; count: number }>(`${BASE_URL}/models/seed`),
 
     // API Keys
-    getApiKeys: (provider?: string) =>
-        api.get<AgentApiKey[]>(`${BASE_URL}/api-keys${provider ? `?provider=${provider}` : ''}`),
+    getApiKeys: (providerId?: number) =>
+        api.get<AgentApiKey[]>(`${BASE_URL}/api-keys${providerId !== undefined ? `?provider_id=${providerId}` : ''}`),
 
     getApiKey: (keyId: number) =>
         api.get<AgentApiKey>(`${BASE_URL}/api-keys/${keyId}`),
@@ -373,9 +376,9 @@ export const agentBuilderApi = {
     deleteApiKey: (keyId: number) =>
         api.delete<{ message: string }>(`${BASE_URL}/api-keys/${keyId}`),
 
-    checkApiKeyExists: (provider: string) =>
+    checkApiKeyExists: (providerId: number) =>
         api.post<{ has_api_key: boolean; key_count: number; keys: AgentApiKey[] }>(
-            `${BASE_URL}/api-keys/check?provider=${provider}`
+            `${BASE_URL}/api-keys/check?provider_id=${providerId}`
         ),
 
     // Agents

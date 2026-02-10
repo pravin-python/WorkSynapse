@@ -5,21 +5,23 @@
  * Create a new AI agent with provider selection, model choice, and API key validation.
  * Shows warning modal if no API key exists for selected provider.
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Bot, Sparkles, AlertTriangle, Key,
-    ChevronRight, Check, Settings
+    ChevronRight, Check, Settings, Loader2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { api } from '../../services/apiClient';
 import './CreateAgent.css';
+import { toast } from 'react-hot-toast';
 
 // Types
 interface LLMProvider {
     id: number;
     name: string;
     display_name: string;
-    available_models: string[];
+    type: string;
     has_api_key: boolean;
     key_count: number;
 }
@@ -29,6 +31,12 @@ interface LLMApiKey {
     provider_id: number;
     label: string;
     key_preview: string;
+}
+
+interface AgentModel {
+    id: number;
+    name: string;
+    display_name: string;
 }
 
 interface AgentForm {
@@ -41,19 +49,8 @@ interface AgentForm {
     temperature: number;
     max_tokens: number;
     system_prompt: string;
+    is_public: boolean;
 }
-
-// Mock data
-const mockProviders: LLMProvider[] = [
-    { id: 1, name: 'openai', display_name: 'OpenAI', available_models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'], has_api_key: true, key_count: 1 },
-    { id: 2, name: 'anthropic', display_name: 'Anthropic', available_models: ['claude-3-5-sonnet-latest', 'claude-3-opus-latest'], has_api_key: false, key_count: 0 },
-    { id: 3, name: 'google', display_name: 'Google AI', available_models: ['gemini-1.5-pro', 'gemini-1.5-flash'], has_api_key: false, key_count: 0 },
-    { id: 5, name: 'ollama', display_name: 'Ollama (Local)', available_models: ['llama3.1', 'mistral', 'codellama'], has_api_key: true, key_count: 0 },
-];
-
-const mockKeys: LLMApiKey[] = [
-    { id: 1, provider_id: 1, label: 'Production Key', key_preview: 'sk-ab...xyz' },
-];
 
 const agentTypes = [
     { value: 'assistant', label: 'General Assistant', icon: '💬' },
@@ -69,7 +66,14 @@ export function CreateAgentPage() {
     useAuth(); // Auth context for user verification
 
     const [step, setStep] = useState(1);
-    const [providers] = useState<LLMProvider[]>(mockProviders);
+    const [providers, setProviders] = useState<LLMProvider[]>([]);
+    const [allKeys, setAllKeys] = useState<LLMApiKey[]>([]);
+    const [providersLoading, setProvidersLoading] = useState(true);
+
+    // Derived state for the current step
+    const [providerModels, setProviderModels] = useState<AgentModel[]>([]);
+    const [modelsLoading, setModelsLoading] = useState(false);
+
     const [availableKeys, setAvailableKeys] = useState<LLMApiKey[]>([]);
     const [showKeyWarning, setShowKeyWarning] = useState(false);
     const [selectedProvider, setSelectedProvider] = useState<LLMProvider | null>(null);
@@ -84,22 +88,72 @@ export function CreateAgentPage() {
         temperature: 0.7,
         max_tokens: 4096,
         system_prompt: '',
+        is_public: false
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
 
-    const handleProviderSelect = (provider: LLMProvider) => {
-        setSelectedProvider(provider);
-        setForm({ ...form, provider_id: provider.id, model_name: provider.available_models[0] || '' });
+    // Fetch Providers and Keys on mount
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setProvidersLoading(true);
+                const [providersRes, keysRes] = await Promise.all([
+                    api.get<LLMProvider[]>('/llm/providers'),
+                    api.get<LLMApiKey[]>('/llm/keys')
+                ]);
+                setProviders(providersRes);
+                setAllKeys(keysRes);
+            } catch (error) {
+                console.error('Failed to fetch data:', error);
+                toast.error('Failed to load providers. Please try again.');
+            } finally {
+                setProvidersLoading(false);
+            }
+        };
 
-        // Check if user has API key for this provider
-        const keys = mockKeys.filter(k => k.provider_id === provider.id);
+        fetchData();
+    }, []);
+
+    const fetchModels = async (providerId: number) => {
+        try {
+            setModelsLoading(true);
+            const models = await api.get<AgentModel[]>(`/llm/providers/${providerId}/models`);
+            setProviderModels(models);
+
+            // Auto-select first model if available
+            if (models.length > 0) {
+                setForm(f => ({ ...f, model_name: models[0].name }));
+            } else {
+                setForm(f => ({ ...f, model_name: '' }));
+            }
+        } catch (error) {
+            console.error('Failed to fetch models:', error);
+            toast.error('Failed to load models for this provider.');
+        } finally {
+            setModelsLoading(false);
+        }
+    };
+
+    const handleProviderSelect = async (provider: LLMProvider) => {
+        setSelectedProvider(provider);
+        setForm({ ...form, provider_id: provider.id, api_key_id: 0 }); // Reset key when provider changes
+
+        // Fetch models for this provider
+        await fetchModels(provider.id);
+
+        // Filter keys for this provider
+        const keys = allKeys.filter(k => k.provider_id === provider.id);
         setAvailableKeys(keys);
 
+        // Check key requirement
+        // Note: Ollama (local) usually doesn't need a key, but the provider object tells us has_api_key
+        // Update: check provider.name for ollama specific logic if needed, but backend handles has_api_key
         if (!provider.has_api_key && provider.name !== 'ollama') {
             setShowKeyWarning(true);
         } else {
             setShowKeyWarning(false);
+            // Auto-select key if only one exists
             if (keys.length === 1) {
                 setForm(f => ({ ...f, api_key_id: keys[0].id }));
             }
@@ -107,8 +161,8 @@ export function CreateAgentPage() {
         }
     };
 
-    const handleModelSelect = (model: string) => {
-        setForm({ ...form, model_name: model });
+    const handleModelSelect = (modelName: string) => {
+        setForm({ ...form, model_name: modelName });
     };
 
     const handleKeySelect = (keyId: number) => {
@@ -132,7 +186,10 @@ export function CreateAgentPage() {
             newErrors.model = 'Please select a model';
         }
 
-        if (selectedProvider?.has_api_key && !form.api_key_id && selectedProvider?.name !== 'ollama') {
+        if (selectedProvider?.name !== 'ollama' && availableKeys.length > 0 && !form.api_key_id) {
+            // Enforce key selection if keys are available and not ollama
+            // Note: If no keys avail, we already showed warning or let them proceed if not required?
+            // Backend requires key for most providers.
             newErrors.api_key = 'Please select an API key';
         }
 
@@ -145,11 +202,14 @@ export function CreateAgentPage() {
 
         if (!validateForm()) return;
 
-        // Simulate API call
-        console.log('Creating agent:', form);
-
-        // Navigate to agents list
-        navigate('/ai/agents');
+        try {
+            await api.post('/llm/agents', form);
+            toast.success('Agent created successfully!');
+            navigate('/ai/agents');
+        } catch (error: any) {
+            console.error('Failed to create agent:', error);
+            toast.error(error.response?.data?.detail || 'Failed to create agent');
+        }
     };
 
     const getProviderIcon = (name: string) => {
@@ -158,9 +218,19 @@ export function CreateAgentPage() {
             anthropic: '🔮',
             google: '🌐',
             ollama: '🖥️',
+            gemini: '✨',
+            groq: '⚡',
         };
-        return icons[name] || '🔑';
+        return icons[name.toLowerCase()] || '🔑';
     };
+
+    if (providersLoading) {
+        return (
+            <div className="flex items-center justify-center h-screen">
+                <Loader2 className="animate-spin text-primary" size={32} />
+            </div>
+        );
+    }
 
     return (
         <div className="create-agent-page">
@@ -206,7 +276,7 @@ export function CreateAgentPage() {
                                     <span className="provider-icon-lg">{getProviderIcon(provider.name)}</span>
                                     <div className="provider-info">
                                         <h4>{provider.display_name}</h4>
-                                        <span className="model-count">{provider.available_models.length} models</span>
+                                        <span className="model-count">{provider.type}</span>
                                     </div>
                                     {provider.has_api_key || provider.name === 'ollama' ? (
                                         <span className="key-status has-key"><Check size={14} /></span>
@@ -285,26 +355,36 @@ export function CreateAgentPage() {
 
                                 <div className="form-group">
                                     <label>Model *</label>
-                                    <select
-                                        value={form.model_name}
-                                        onChange={e => handleModelSelect(e.target.value)}
-                                        className="form-input"
-                                    >
-                                        {selectedProvider.available_models.map(model => (
-                                            <option key={model} value={model}>{model}</option>
-                                        ))}
-                                    </select>
+                                    {modelsLoading ? (
+                                        <div className="loading-input">Loading models...</div>
+                                    ) : (
+                                        <select
+                                            value={form.model_name}
+                                            onChange={e => handleModelSelect(e.target.value)}
+                                            className="form-input"
+                                        >
+                                            <option value="" disabled>Select a model</option>
+                                            {providerModels.map(model => (
+                                                <option key={model.id} value={model.name}>{model.display_name}</option>
+                                            ))}
+                                        </select>
+                                    )}
+                                    {errors.model && <span className="form-error">{errors.model}</span>}
                                 </div>
 
-                                {selectedProvider.has_api_key && availableKeys.length > 0 && (
+                                {/* API Key Selection - Always show if keys exist (or even warn if empty) */}
+                                {selectedProvider.name !== 'ollama' && (
                                     <div className="form-group">
                                         <label>API Key *</label>
                                         <select
                                             value={form.api_key_id}
                                             onChange={e => handleKeySelect(Number(e.target.value))}
                                             className={`form-input ${errors.api_key ? 'error' : ''}`}
+                                            disabled={availableKeys.length === 0}
                                         >
-                                            <option value="">Select a key...</option>
+                                            <option value="">
+                                                {availableKeys.length === 0 ? "No keys available" : "Select a key..."}
+                                            </option>
                                             {availableKeys.map(key => (
                                                 <option key={key.id} value={key.id}>
                                                     {key.label} ({key.key_preview})
@@ -312,6 +392,15 @@ export function CreateAgentPage() {
                                             ))}
                                         </select>
                                         {errors.api_key && <span className="form-error">{errors.api_key}</span>}
+                                        {availableKeys.length === 0 && (
+                                            <button
+                                                type="button"
+                                                className="text-sm text-primary mt-2 underline"
+                                                onClick={() => navigate('/llm/keys')}
+                                            >
+                                                Add API Key
+                                            </button>
+                                        )}
                                     </div>
                                 )}
 

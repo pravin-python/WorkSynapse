@@ -350,11 +350,7 @@ export const AgentBuilderForm: React.FC = () => {
                 setRagDocuments(agent.rag_documents);
             }
 
-            // Load API keys for the model's provider
-            if (agent.model_provider) {
-                const keysRes = await agentBuilderApi.getApiKeys(agent.model_provider);
-                setApiKeys(keysRes);
-            }
+            // API keys will be loaded by the useEffect when selectedProvider is set
         } catch (error) {
             console.error('Failed to load agent:', error);
         }
@@ -364,28 +360,28 @@ export const AgentBuilderForm: React.FC = () => {
     // MODEL SELECTION
     // ========================================================================
 
-    // ========================================================================
-    // MODEL SELECTION
-    // ========================================================================
+    const [selectedProvider, setSelectedProvider] = useState<number | null>(null);
 
-    const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+    // Load API keys when provider changes
+    useEffect(() => {
+        if (selectedProvider) {
+            agentBuilderApi.getApiKeys(selectedProvider)
+                .then(setApiKeys)
+                .catch(err => console.error('Failed to load keys:', err));
+        } else {
+            setApiKeys([]);
+        }
+    }, [selectedProvider]);
 
     // Initialize provider and query when editing
     useEffect(() => {
         if (formData.model_type === 'saas' && formData.model_id && models.length > 0) {
             const model = models.find(m => m.id === formData.model_id);
-            if (model && model.provider) {
-                const pName = typeof model.provider === 'string' ? model.provider : ((model.provider as any).display_name || (model.provider as any).name);
-                setSelectedProvider(pName);
-
-            }
-        } else if (formData.model_type === 'local' && formData.local_model_id && localModels.length > 0) {
-            const model = localModels.find(m => m.id === formData.local_model_id);
-            if (model) {
-
+            if (model && model.provider_id) {
+                setSelectedProvider(model.provider_id);
             }
         }
-    }, [formData.model_id, formData.local_model_id, models, localModels, formData.model_type]);
+    }, [formData.model_id, models, formData.model_type]);
 
     // Reset query when switching tabs
     useEffect(() => {
@@ -395,43 +391,41 @@ export const AgentBuilderForm: React.FC = () => {
     const getUniqueProviders = () => {
         if (!models || models.length === 0) return [];
 
-        const providers = new Set(models
-            .map(m => {
-                if (!m.provider) return null;
-                // Handle provider as object or string
-                if (typeof m.provider === 'string') return m.provider;
-                // Check for display_name or name
-                // @ts-ignore - Handle potential missing types
-                return m.provider.display_name || m.provider.name || null;
-            })
-            .filter((p): p is string => Boolean(p))
-        );
-        return Array.from(providers).sort();
-    };
+        const providersMap = new Map<number, string>();
 
-    const getModelsForProvider = (provider: string) => {
-        return models.filter(m => {
-            if (!m.provider) return false;
-            // @ts-ignore
-            const pName = typeof m.provider === 'string' ? m.provider : (m.provider.display_name || m.provider.name);
-            return pName === provider;
+        models.forEach(m => {
+            if (m.provider_id) {
+                // Try to get display name from provider object if available, otherwise use a fallback or skip
+                let displayName = '';
+                if (typeof m.provider === 'object' && m.provider && 'display_name' in m.provider) {
+                    displayName = m.provider.display_name;
+                } else if (typeof m.provider === 'string') {
+                    displayName = m.provider;
+                }
+
+                if (displayName) {
+                    providersMap.set(m.provider_id, displayName);
+                }
+            }
         });
+
+        return Array.from(providersMap.entries())
+            .map(([id, name]) => ({ id, name }))
+            .sort((a, b) => a.name.localeCompare(b.name));
     };
 
+    const getModelsForProvider = (providerId: number) => {
+        return models.filter(m => m.provider_id === providerId);
+    };
 
-
-    const handleProviderSelect = (provider: string) => {
-        setSelectedProvider(provider);
+    const handleProviderSelect = (providerId: number) => {
+        setSelectedProvider(providerId);
 
         // Clear current model selection if switching providers
         if (formData.model_type === 'saas' && formData.model_id) {
             const currentModel = models.find(m => m.id === formData.model_id);
             if (currentModel) {
-                const currentProvider = !currentModel.provider
-                    ? null
-                    : (typeof currentModel.provider === 'string' ? currentModel.provider : ((currentModel.provider as any).display_name || (currentModel.provider as any).name));
-
-                if (currentProvider !== provider) {
+                if (currentModel.provider_id !== providerId) {
                     setFormData(prev => ({ ...prev, model_id: null, api_key_id: null }));
                 }
             }
@@ -454,13 +448,8 @@ export const AgentBuilderForm: React.FC = () => {
 
             // Load API keys for this provider
             try {
-
-                const pName = !model.provider
-                    ? ''
-                    : (typeof model.provider === 'string' ? model.provider : ((model.provider as any).display_name || (model.provider as any).name));
-
-                if (pName) {
-                    const keysRes = await agentBuilderApi.getApiKeys(pName);
+                if (model.provider_id) {
+                    const keysRes = await agentBuilderApi.getApiKeys(model.provider_id);
                     setApiKeys(keysRes);
 
                     // If model requires API key and none exists, show modal
@@ -474,8 +463,6 @@ export const AgentBuilderForm: React.FC = () => {
         } else {
             const model = localModels.find(m => m.id === modelId);
             if (!model) return;
-
-
 
             setFormData(prev => ({
                 ...prev,
@@ -530,64 +517,75 @@ export const AgentBuilderForm: React.FC = () => {
                                     <select
                                         className="form-select"
                                         value={selectedProvider || ''}
-                                        onChange={(e) => handleProviderSelect(e.target.value)}
+                                        onChange={(e) => handleProviderSelect(Number(e.target.value))}
                                         style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}
                                     >
                                         <option value="">-- Choose a Provider --</option>
-                                        {getUniqueProviders().map(provider => (
-                                            <option key={provider} value={provider}>{provider}</option>
+                                        {getUniqueProviders().map(p => (
+                                            <option key={p.id} value={p.id}>{p.name}</option>
                                         ))}
                                     </select>
                                 </div>
-                            </>
-                        )}
 
-                        {/* Step 2: Model Selection */}
-                        {selectedProvider && (
-                            <div className="form-group animation-slide-in">
-                                <label>2. Select Model</label>
-                                <select
-                                    className="form-select"
-                                    value={formData.model_id || ''}
-                                    onChange={(e) => handleModelSelect(Number(e.target.value), 'saas')}
-                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}
-                                >
-                                    <option value="">-- Choose a Model --</option>
-                                    {getModelsForProvider(selectedProvider).map(m => (
-                                        <option key={m.id} value={m.id}>
-                                            {m.display_name} ({(m.context_window / 1000).toFixed(0)}k context)
-                                        </option>
-                                    ))}
-                                </select>
+                                {/* Step 2: Model Selection */}
+                                {selectedProvider && (
+                                    <div className="form-group animation-slide-in" style={{ marginTop: '20px' }}>
+                                        <label>2. Select Model</label>
+                                        <select
+                                            className="form-select"
+                                            value={formData.model_id || ''}
+                                            onChange={(e) => handleModelSelect(Number(e.target.value), 'saas')}
+                                            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', marginTop: '5px' }}
+                                        >
+                                            <option value="">-- Choose a Model --</option>
+                                            {getModelsForProvider(selectedProvider).map(m => (
+                                                <option key={m.id} value={m.id}>
+                                                    {m.display_name} ({(m.context_window / 1000).toFixed(0)}k context)
+                                                </option>
+                                            ))}
+                                        </select>
 
-                                {selectedModel && 'context_window' in selectedModel && (
-                                    <div className="selected-model-info" style={{ marginTop: '10px', fontSize: '0.9rem', color: '#666' }}>
-                                        Running <strong>{selectedModel.display_name}</strong> • {(selectedModel.context_window / 1000).toFixed(0)}k Context
+                                        {selectedModel && (
+                                            <div className="selected-model-info" style={{ marginTop: '10px', fontSize: '0.9rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <span>Running <strong>{(selectedModel as AgentModel).display_name}</strong></span>
+                                                <span>•</span>
+                                                <span>{((selectedModel as AgentModel).context_window / 1000).toFixed(0)}k Context</span>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
-                            </div>
-                        )}
 
-                        {!selectedProvider && (
-                            <div className="info-message">Select a provider first to see available models.</div>
+                                {!selectedProvider && (
+                                    <div className="info-message" style={{ padding: '15px', backgroundColor: '#f8fafc', borderRadius: '8px', color: '#64748b', marginTop: '20px', textAlign: 'center' }}>
+                                        Select a provider above to see available models.
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 ) : (
                     <div className="local-models-flow">
-                        {/* Local Models Logic remains similar */}
+                        {/* Local Models Logic */}
                         <div className="form-group">
                             <label>Select Local Model</label>
                             {localModels.length === 0 ? (
-                                <div className="empty-state" style={{ padding: '20px', textAlign: 'center', border: '1px dashed #ccc', borderRadius: '8px' }}>
-                                    <p>No local models available.</p>
-                                    <button type="button" className="btn-secondary" onClick={() => navigate('/ai/local-models')}>Download Models</button>
+                                <div className="empty-state" style={{ padding: '30px', textAlign: 'center', border: '1px dashed #cbd5e1', borderRadius: '8px', marginTop: '10px' }}>
+                                    <p style={{ marginBottom: '15px', color: '#64748b' }}>No local models available.</p>
+                                    <button
+                                        type="button"
+                                        className="btn-secondary"
+                                        onClick={() => navigate('/ai/local-models')}
+                                        style={{ padding: '8px 16px', borderRadius: '6px', background: '#f1f5f9', border: 'none', cursor: 'pointer' }}
+                                    >
+                                        Manage Local Models
+                                    </button>
                                 </div>
                             ) : (
                                 <select
                                     className="form-select"
                                     value={formData.local_model_id || ''}
                                     onChange={(e) => handleModelSelect(Number(e.target.value), 'local')}
-                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', marginTop: '5px' }}
                                 >
                                     <option value="">-- Choose a Local Model --</option>
                                     {localModels.filter(m => m.status === 'ready').map(m => (
@@ -601,54 +599,64 @@ export const AgentBuilderForm: React.FC = () => {
                     </div>
                 )}
 
-                {/* API Key Section - existing logic */}
-                {modelTab === 'saas' && selectedModel && (selectedModel as AgentModel).requires_api_key && (
-                    <div className="api-key-section" style={{ marginTop: '20px' }}>
-                        <h3>API Key</h3>
+                {/* API Key Section */}
+                {modelTab === 'saas' && selectedModel && ((selectedModel as AgentModel).requires_api_key !== false) && (
+                    <div className="api-key-section" style={{ marginTop: '25px', paddingTop: '20px', borderTop: '1px solid #e2e8f0' }}>
+                        <h3 style={{ fontSize: '1.1rem', marginBottom: '15px' }}>API Key</h3>
                         {apiKeys.length > 0 ? (
-                            <div className="api-key-selector">
-                                <select
-                                    value={formData.api_key_id || ''}
-                                    onChange={e => setFormData(prev => ({ ...prev, api_key_id: parseInt(e.target.value) || null }))}
-                                    className={errors.api_key_id ? 'error' : ''}
-                                >
-                                    <option value="">Select an API key...</option>
-                                    {apiKeys.map(key => (
-                                        <option key={key.id} value={key.id}>
-                                            {key.label} ({key.key_preview}) {!key.is_valid && '⚠️'}
-                                        </option>
-                                    ))}
-                                </select>
+                            <div className="api-key-selector" style={{ display: 'flex', gap: '10px' }}>
+                                <div style={{ flex: 1 }}>
+                                    <select
+                                        value={formData.api_key_id || ''}
+                                        onChange={e => setFormData(prev => ({ ...prev, api_key_id: parseInt(e.target.value) || null }))}
+                                        className={errors.api_key_id ? 'form-select error' : 'form-select'}
+                                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: errors.api_key_id ? '1px solid #ef4444' : '1px solid #e2e8f0' }}
+                                    >
+                                        <option value="">Select an API key...</option>
+                                        {apiKeys.map(key => (
+                                            <option key={key.id} value={key.id}>
+                                                {key.label} ({key.key_preview}) {!key.is_valid && '⚠️'}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {errors.api_key_id && <span className="error-message" style={{ color: '#ef4444', fontSize: '0.85rem', marginTop: '5px', display: 'block' }}>{errors.api_key_id}</span>}
+                                </div>
                                 <button
                                     type="button"
                                     className="btn-secondary"
                                     onClick={() => setShowApiKeyModal(true)}
+                                    style={{ padding: '0 15px', borderRadius: '8px', background: '#f1f5f9', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
                                 >
-                                    + Add New Key
+                                    + New Key
                                 </button>
                             </div>
                         ) : (
-                            <div className="no-api-key">
-                                <p>No API key found for {typeof (selectedModel as AgentModel).provider === 'string' ? (selectedModel as AgentModel).provider : ((selectedModel as AgentModel).provider as any).display_name}.</p>
+                            <div className="no-api-key" style={{ padding: '15px', background: '#fff1f2', borderRadius: '8px', border: '1px solid #ffe4e6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <p style={{ margin: 0, color: '#e11d48' }}>
+                                    No API key found.
+                                </p>
                                 <button
                                     type="button"
                                     className="btn-primary"
                                     onClick={() => setShowApiKeyModal(true)}
+                                    style={{ padding: '8px 16px', borderRadius: '6px', background: '#e11d48', color: 'white', border: 'none', cursor: 'pointer' }}
                                 >
                                     Add API Key
                                 </button>
                             </div>
                         )}
-                        {errors.api_key_id && <span className="error-message">{errors.api_key_id}</span>}
                     </div>
                 )}
 
                 {selectedModel && (
-                    <div className="model-params" style={{ marginTop: '20px' }}>
-                        <h3>Model Parameters</h3>
-                        <div className="params-grid">
+                    <div className="model-params" style={{ marginTop: '25px', paddingTop: '20px', borderTop: '1px solid #e2e8f0' }}>
+                        <h3 style={{ fontSize: '1.1rem', marginBottom: '15px' }}>Model Parameters</h3>
+                        <div className="params-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                             <div className="param-group">
-                                <label>Temperature: {formData.temperature}</label>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                                    <label>Temperature</label>
+                                    <span style={{ fontWeight: 'bold' }}>{formData.temperature}</span>
+                                </div>
                                 <input
                                     type="range"
                                     min="0"
@@ -656,11 +664,15 @@ export const AgentBuilderForm: React.FC = () => {
                                     step="0.1"
                                     value={formData.temperature}
                                     onChange={e => setFormData(prev => ({ ...prev, temperature: parseFloat(e.target.value) }))}
+                                    style={{ width: '100%' }}
                                 />
-                                <span className="param-hint">Lower = more focused, Higher = more creative</span>
+                                <span className="param-hint" style={{ fontSize: '0.8rem', color: '#64748b' }}>Lower = more focused, Higher = more creative</span>
                             </div>
                             <div className="param-group">
-                                <label>Max Tokens: {formData.max_tokens}</label>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                                    <label>Max Tokens</label>
+                                    <span style={{ fontWeight: 'bold' }}>{formData.max_tokens}</span>
+                                </div>
                                 <input
                                     type="range"
                                     min="100"
@@ -668,6 +680,7 @@ export const AgentBuilderForm: React.FC = () => {
                                     step="100"
                                     value={formData.max_tokens}
                                     onChange={e => setFormData(prev => ({ ...prev, max_tokens: parseInt(e.target.value) }))}
+                                    style={{ width: '100%' }}
                                 />
                             </div>
                         </div>

@@ -719,14 +719,18 @@ class LLMKeyService:
         if not provider:
             raise LLMKeyServiceError("Provider not found")
         
-        # Validate API key belongs to user and provider
-        api_key = await LLMKeyService.get_key(db, data.api_key_id, user_id)
-        if not api_key:
-            raise LLMKeyServiceError("API key not found")
-        if api_key.provider_id != data.provider_id:
-            raise LLMKeyServiceError("API key does not match selected provider")
-        if not api_key.is_active:
-            raise LLMKeyServiceError("API key is not active")
+        if data.api_key_id:
+            # Validate API key belongs to user and provider
+            api_key = await LLMKeyService.get_key(db, data.api_key_id, user_id)
+            if not api_key:
+                raise LLMKeyServiceError("API key not found")
+            if api_key.provider_id != data.provider_id:
+                raise LLMKeyServiceError("API key does not match selected provider")
+            if not api_key.is_active:
+                raise LLMKeyServiceError("API key is not active")
+        elif provider.requires_api_key:
+             # Provider requires key but none provided
+             raise LLMKeyServiceError(f"Provider '{provider.display_name}' requires an API key")
         
         # Create agent
         agent = UserAIAgent(

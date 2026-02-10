@@ -136,10 +136,7 @@ def upgrade() -> None:
                existing_type=sa.BOOLEAN(),
                server_default=None,
                existing_nullable=False)
-    op.alter_column('llm_key_providers', 'is_system',
-               existing_type=sa.BOOLEAN(),
-               server_default=None,
-               nullable=False)
+    op.add_column('llm_key_providers', sa.Column('is_system', sa.Boolean(), server_default='false', nullable=False))
     op.alter_column('project_members', 'joined_at',
                existing_type=postgresql.TIMESTAMP(timezone=True),
                server_default='now()',
@@ -193,10 +190,7 @@ def downgrade() -> None:
                existing_type=postgresql.TIMESTAMP(timezone=True),
                server_default=sa.text("'2026-02-10 14:01:31.988671+05:30'::timestamp with time zone"),
                existing_nullable=False)
-    op.alter_column('llm_key_providers', 'is_system',
-               existing_type=sa.BOOLEAN(),
-               server_default=sa.text('false'),
-               nullable=True)
+    op.drop_column('llm_key_providers', 'is_system')
     op.alter_column('custom_agents', 'mcp_enabled',
                existing_type=sa.BOOLEAN(),
                server_default=sa.text('false'),
