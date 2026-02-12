@@ -9,6 +9,7 @@ import time
 from app.core.config import settings, validate_production_settings
 from app.core.logging import logger
 from app.middleware.security import setup_security_middleware
+from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.api_router import api_router
 from app.services.redis_service import redis_service
 from app.services.kafka_service import kafka_service
@@ -75,6 +76,16 @@ app = FastAPI(
     redoc_url=f"{settings.API_V1_STR}/redoc" if settings.DEBUG else None,
     lifespan=lifespan
 )
+
+# CORS
+if settings.BACKEND_CORS_ORIGINS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.BACKEND_CORS_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 # Setup security middleware
 setup_security_middleware(app)

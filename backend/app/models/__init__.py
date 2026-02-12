@@ -70,14 +70,11 @@ from app.models.chat.model import (
 # Notes Models
 from app.models.note.model import (
     Note,
-    NoteVisibility,
     NoteFolder,
     NoteShare,
     SharePermission,
-    NoteVersion,
-    NoteTagDefinition,
-    NoteComment,
-    note_tags,
+    NoteTag,
+    note_tag_map,
 )
 
 # AI Agent Governance Models
@@ -234,14 +231,11 @@ __all__ = [
     
     # Notes
     "Note",
-    "NoteVisibility",
     "NoteFolder",
     "NoteShare",
     "SharePermission",
-    "NoteVersion",
-    "NoteTagDefinition",
-    "NoteComment",
-    "note_tags",
+    "NoteTag",
+    "note_tag_map",
     
     # Agent
     "Agent",

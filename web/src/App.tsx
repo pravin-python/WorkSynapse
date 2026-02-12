@@ -22,7 +22,7 @@ const ProjectsPage = lazy(() => import('./pages/projects/ProjectsPage'));
 const ProjectDetailPage = lazy(() => import('./pages/projects/ProjectDetailPage'));
 const TasksPage = lazy(() => import('./pages/tasks/TasksPage'));
 const ChatPage = lazy(() => import('./pages/chat/ChatPage'));
-const NotesPage = lazy(() => import('./pages/notes/NotesPage'));
+const NotesPage = lazy(() => import('./features/notes').then(module => ({ default: module.NotesPage })));
 const TrackingPage = lazy(() => import('./pages/tracking/TrackingPage'));
 const ProfilePage = lazy(() => import('./pages/profile/ProfilePage'));
 const SettingsPage = lazy(() => import('./pages/settings/SettingsPage'));
@@ -239,7 +239,12 @@ function App() {
             <LoaderProvider>
                 <GlobalLoader />
                 <AuthProvider>
-                    <BrowserRouter>
+                    <BrowserRouter
+                        future={{
+                            v7_startTransition: true,
+                            v7_relativeSplatPath: true,
+                        }}
+                    >
                         <AppRoutes />
                     </BrowserRouter>
                 </AuthProvider>

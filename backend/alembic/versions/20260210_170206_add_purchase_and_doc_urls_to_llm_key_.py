@@ -83,8 +83,14 @@ def upgrade() -> None:
                existing_type=postgresql.TIMESTAMP(timezone=True),
                server_default='now()',
                existing_nullable=True)
-    op.add_column('llm_key_providers', sa.Column('purchase_url', sa.String(length=500), nullable=True))
-    op.add_column('llm_key_providers', sa.Column('documentation_url', sa.String(length=500), nullable=True))
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    columns = [c['name'] for c in inspector.get_columns('llm_key_providers')]
+    
+    if 'purchase_url' not in columns:
+        op.add_column('llm_key_providers', sa.Column('purchase_url', sa.String(length=500), nullable=True))
+    if 'documentation_url' not in columns:
+        op.add_column('llm_key_providers', sa.Column('documentation_url', sa.String(length=500), nullable=True))
     op.alter_column('llm_key_providers', 'is_system',
                existing_type=sa.BOOLEAN(),
                server_default=None,

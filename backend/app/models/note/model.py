@@ -6,17 +6,16 @@ Personal and shared notes with rich content and collaboration.
 Features:
 - Rich text notes
 - Folder organization
-- Sharing with users and projects
-- Version history
+- Sharing with users
 - Tags
 """
 from typing import List, Optional
 from sqlalchemy import (
     String, Boolean, Enum, ForeignKey, Text, Integer, 
-    DateTime, Index, UniqueConstraint, CheckConstraint,
-    JSON, Table, Column
+    DateTime, Index, UniqueConstraint, Table, Column, JSON
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.ext.hybrid import hybrid_property
 from app.models.base import Base, AuditMixin
 import enum
 import datetime
@@ -26,19 +25,18 @@ import datetime
 # ENUMS
 # =============================================================================
 
-class NoteVisibility(str, enum.Enum):
-    """Note visibility settings."""
-    PRIVATE = "PRIVATE"         # Only owner
-    SHARED = "SHARED"           # Specific users
-    PROJECT = "PROJECT"         # All project members
-    ORGANIZATION = "ORGANIZATION"
-
-
 class SharePermission(str, enum.Enum):
     """Note share permissions."""
     VIEW = "VIEW"
-    COMMENT = "COMMENT"
     EDIT = "EDIT"
+
+
+class NoteVisibility(str, enum.Enum):
+    """Visibility for notes (matches DB enum `notevisibility`)."""
+    PRIVATE = "PRIVATE"
+    SHARED = "SHARED"
+    PROJECT = "PROJECT"
+    ORGANIZATION = "ORGANIZATION"
 
 
 # =============================================================================
@@ -46,7 +44,8 @@ class SharePermission(str, enum.Enum):
 # =============================================================================
 
 # Many-to-many: Notes <-> Tags
-note_tags = Table(
+# Association table: note_tags (maps notes to tag definitions)
+note_tag_map = Table(
     "note_tags",
     Base.metadata,
     Column("note_id", Integer, ForeignKey("notes.id", ondelete="CASCADE"), primary_key=True),
@@ -76,29 +75,63 @@ class NoteFolder(Base):
         nullable=False
     )
     
-    # Parent folder (for nesting)
-    parent_folder_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("note_folders.id", ondelete="CASCADE"),
-        nullable=True
-    )
-    
     # Appearance
     color: Mapped[Optional[str]] = mapped_column(String(7), nullable=True)
-    icon: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     
-    # Position for ordering
-    position: Mapped[int] = mapped_column(Integer, default=0)
+    # Created At
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.datetime.now(datetime.timezone.utc)
+    )
+
+    # Ordering
+    position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     
     # Relationships
     owner = relationship("User")
-    parent_folder = relationship("NoteFolder", remote_side=[id], backref="child_folders")
     notes: Mapped[List["Note"]] = relationship(
         back_populates="folder"
     )
     
     __table_args__ = (
-        UniqueConstraint("owner_id", "parent_folder_id", "name", name="uq_folder_name"),
+        UniqueConstraint("owner_id", "name", name="uq_folder_owner_name"),
         Index("ix_note_folders_owner", "owner_id"),
+    )
+
+
+# =============================================================================
+# NOTE TAG MODEL
+# =============================================================================
+
+class NoteTag(Base):
+    """
+    Tag definitions for notes.
+    """
+    __tablename__ = "note_tag_definitions"
+    
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    
+    # Tag info
+    name: Mapped[str] = mapped_column(String(50), nullable=False)
+    color: Mapped[Optional[str]] = mapped_column(String(7), nullable=True)
+    usage_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    
+    # Owner
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False
+    )
+    
+    # Relationships
+    owner = relationship("User")
+    notes: Mapped[List["Note"]] = relationship(
+        secondary=note_tag_map,
+        back_populates="tags"
+    )
+    
+    __table_args__ = (
+        UniqueConstraint("owner_id", "name", name="uq_tag_owner_name"),
     )
 
 
@@ -109,12 +142,6 @@ class NoteFolder(Base):
 class Note(Base, AuditMixin):
     """
     Personal or shared note with rich content.
-    
-    Features:
-    - Rich text content (stored as JSON for blocks)
-    - Project association
-    - Folder organization
-    - Version history
     """
     __tablename__ = "notes"
     
@@ -123,11 +150,9 @@ class Note(Base, AuditMixin):
     # Basic info
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     
-    # Content (can be plain text or rich JSON)
+    # Content
     content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    content_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)  # For rich editor blocks
-    
-    # Excerpt for preview
+    content_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     excerpt: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     
     # Owner
@@ -143,64 +168,63 @@ class Note(Base, AuditMixin):
         index=True,
         nullable=True
     )
-    
-    # Project association (optional)
+
+    # Optional link to a project
     project_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("projects.id", ondelete="CASCADE"),
+        ForeignKey("projects.id", ondelete="SET NULL"),
         index=True,
         nullable=True
     )
     
-    # Visibility
+    # Visibility enum (DB requires non-null)
     visibility: Mapped[NoteVisibility] = mapped_column(
-        Enum(NoteVisibility),
-        default=NoteVisibility.PRIVATE
+        Enum(NoteVisibility, name="notevisibility"),
+        default=NoteVisibility.PRIVATE,
+        nullable=False,
     )
     
     # Status
-    is_pinned: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Database column is `is_pinned` (keeps compatibility with migrations).
+    is_pinned: Mapped[bool] = mapped_column(Boolean, name="is_pinned", default=False)
     is_archived: Mapped[bool] = mapped_column(Boolean, default=False)
-    archived_at: Mapped[Optional[datetime.datetime]] = mapped_column(
-        DateTime(timezone=True),
-        nullable=True
-    )
-    
-    # Template
-    is_template: Mapped[bool] = mapped_column(Boolean, default=False)
+    archived_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    is_template: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     template_category: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    
-    # Version tracking
-    version: Mapped[int] = mapped_column(Integer, default=1)
-    
-    # Full-text search
-    search_vector: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # For FTS indexing
+    version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    search_vector: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    @hybrid_property
+    def is_starred(self) -> bool:
+        return self.is_pinned
+
+    @is_starred.expression
+    def is_starred(cls):
+        return cls.is_pinned
+
+    @is_starred.setter
+    def is_starred(self, value: bool):
+        self.is_pinned = value
+        
+    # Timestamps (AuditMixin handles created_at/updated_at but we can be explicit if needed)
     
     # Relationships
     owner = relationship("User", back_populates="notes", foreign_keys=[owner_id])
     folder: Mapped[Optional["NoteFolder"]] = relationship(back_populates="notes")
-    project = relationship("Project", back_populates="notes")
     shares: Mapped[List["NoteShare"]] = relationship(
         back_populates="note",
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
+        lazy="selectin"
     )
-    versions: Mapped[List["NoteVersion"]] = relationship(
-        back_populates="note",
-        cascade="all, delete-orphan"
+    tags: Mapped[List["NoteTag"]] = relationship(
+        secondary=note_tag_map,
+        back_populates="notes",
+        lazy="selectin"
     )
-    tags: Mapped[List["NoteTagDefinition"]] = relationship(
-        secondary=note_tags,
-        back_populates="notes"
-    )
-    comments: Mapped[List["NoteComment"]] = relationship(
-        back_populates="note",
-        cascade="all, delete-orphan"
-    )
+    project: Mapped[Optional["Project"]] = relationship(back_populates="notes", lazy="selectin")
     
     __table_args__ = (
         Index("ix_notes_owner", "owner_id"),
-        Index("ix_notes_project", "project_id"),
-        Index("ix_notes_visibility", "visibility"),
-        Index("ix_notes_pinned", "owner_id", "is_pinned"),
+        Index("ix_notes_starred", "owner_id", "is_pinned"),
     )
 
 
@@ -242,18 +266,10 @@ class NoteShare(Base):
         nullable=False
     )
     
-    # Share expiration (optional)
-    expires_at: Mapped[Optional[datetime.datetime]] = mapped_column(
+    created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True),
-        nullable=True
+        default=lambda: datetime.datetime.now(datetime.timezone.utc)
     )
-    
-    # Access tracking
-    last_accessed_at: Mapped[Optional[datetime.datetime]] = mapped_column(
-        DateTime(timezone=True),
-        nullable=True
-    )
-    access_count: Mapped[int] = mapped_column(Integer, default=0)
     
     # Relationships
     note: Mapped["Note"] = relationship(back_populates="shares")
@@ -263,153 +279,4 @@ class NoteShare(Base):
     __table_args__ = (
         UniqueConstraint("note_id", "shared_with_user_id", name="uq_note_share"),
     )
-    
-    def is_valid(self) -> bool:
-        """Check if share is still valid."""
-        if self.expires_at is None:
-            return True
-        return datetime.datetime.now(datetime.timezone.utc) < self.expires_at
 
-
-# =============================================================================
-# NOTE VERSION MODEL
-# =============================================================================
-
-class NoteVersion(Base):
-    """
-    Note version history for tracking changes.
-    """
-    __tablename__ = "note_versions"
-    
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    
-    # Note reference
-    note_id: Mapped[int] = mapped_column(
-        ForeignKey("notes.id", ondelete="CASCADE"),
-        index=True,
-        nullable=False
-    )
-    
-    # Version number
-    version_number: Mapped[int] = mapped_column(Integer, nullable=False)
-    
-    # Snapshot
-    title: Mapped[str] = mapped_column(String(500), nullable=False)
-    content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    content_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
-    
-    # Who made the change
-    created_by_user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id"),
-        nullable=False
-    )
-    
-    # Change summary
-    change_summary: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    
-    # Relationships
-    note: Mapped["Note"] = relationship(back_populates="versions")
-    created_by = relationship("User")
-    
-    __table_args__ = (
-        UniqueConstraint("note_id", "version_number", name="uq_note_version"),
-        Index("ix_note_versions_note", "note_id", "version_number"),
-    )
-
-
-# =============================================================================
-# NOTE TAG DEFINITION MODEL
-# =============================================================================
-
-class NoteTagDefinition(Base):
-    """
-    Tag definitions for notes.
-    """
-    __tablename__ = "note_tag_definitions"
-    
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    
-    # Tag info
-    name: Mapped[str] = mapped_column(String(50), nullable=False)
-    color: Mapped[Optional[str]] = mapped_column(String(7), nullable=True)
-    
-    # Owner (for personal tags) or null (for system tags)
-    owner_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"),
-        index=True,
-        nullable=True
-    )
-    
-    # Usage count (for popularity)
-    usage_count: Mapped[int] = mapped_column(Integer, default=0)
-    
-    # Relationships
-    owner = relationship("User")
-    notes: Mapped[List["Note"]] = relationship(
-        secondary=note_tags,
-        back_populates="tags"
-    )
-    
-    __table_args__ = (
-        UniqueConstraint("owner_id", "name", name="uq_tag_owner_name"),
-    )
-
-
-# =============================================================================
-# NOTE COMMENT MODEL
-# =============================================================================
-
-class NoteComment(Base):
-    """
-    Comments on notes.
-    """
-    __tablename__ = "note_comments"
-    
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    
-    # Content
-    content: Mapped[str] = mapped_column(Text, nullable=False)
-    
-    # Note reference
-    note_id: Mapped[int] = mapped_column(
-        ForeignKey("notes.id", ondelete="CASCADE"),
-        index=True,
-        nullable=False
-    )
-    
-    # Author
-    author_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False
-    )
-    
-    # Position in document (for inline comments)
-    position_start: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    position_end: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    
-    # Reply to another comment
-    parent_comment_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("note_comments.id", ondelete="CASCADE"),
-        nullable=True
-    )
-    
-    # Resolved status
-    is_resolved: Mapped[bool] = mapped_column(Boolean, default=False)
-    resolved_at: Mapped[Optional[datetime.datetime]] = mapped_column(
-        DateTime(timezone=True),
-        nullable=True
-    )
-    resolved_by_user_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("users.id"),
-        nullable=True
-    )
-    
-    # Relationships
-    note: Mapped["Note"] = relationship(back_populates="comments")
-    author = relationship("User", foreign_keys=[author_id])
-    parent_comment = relationship("NoteComment", remote_side=[id], backref="replies")
-    resolved_by = relationship("User", foreign_keys=[resolved_by_user_id])
-    
-    __table_args__ = (
-        Index("ix_note_comments_note", "note_id"),
-    )
