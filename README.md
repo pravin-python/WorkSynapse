@@ -12,8 +12,10 @@
   <a href="#features">Features</a> •
   <a href="#architecture">Architecture</a> •
   <a href="#tech-stack">Tech Stack</a> •
+  <a href="#project-structure">Project Structure</a> •
+  <a href="#security-features">Security Features</a> •
   <a href="#quick-start">Quick Start</a> •
-  <a href="#api-docs">API Docs</a>
+  <a href="#api-docs">API Docs</a> •
 </p>
 
 <p align="center">
@@ -40,7 +42,7 @@
 
 ---
 
-## ✨ Features
+<h2 id="features">✨ Features</h2>
 
 ### 💬 Company Internal Chat
 - Real-time messaging via WebSockets
@@ -98,7 +100,7 @@
 
 ---
 
-## 🏗️ Architecture
+<h2 id="architecture">🏗️ Architecture</h2>
 
 WorkSynapse follows a **Modular Monorepo** architecture combining **Event-Driven** and **Layered** patterns for scalability and maintainability.
 
@@ -164,7 +166,7 @@ WorkSynapse follows a **Modular Monorepo** architecture combining **Event-Driven
 
 ---
 
-## 🛠️ Tech Stack
+<h2 id="tech-stack">🛠️ Tech Stack</h2>
 
 ### Backend (`backend/`)
 | Technology | Purpose |
@@ -206,7 +208,7 @@ WorkSynapse follows a **Modular Monorepo** architecture combining **Event-Driven
 
 ---
 
-## 📁 Project Structure
+<h2 id="project-structure">📁 Project Structure</h2>
 
 ```
 worksynapse/
@@ -340,7 +342,7 @@ worksynapse/
 
 ---
 
-## 🔐 Security Features
+<h2 id="security-features">🔐 Security Features</h2>
 
 ### API Security
 | Feature | Implementation |
