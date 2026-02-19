@@ -196,8 +196,8 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     app.dependency_overrides.clear()
 
 # Import fixtures using absolute paths
-from backend.tests.fixtures.user_fixtures import *
-from backend.tests.fixtures.auth_fixtures import *
-from backend.tests.fixtures.note_fixtures import *
-from backend.tests.fixtures.project_fixtures import *
-from backend.tests.fixtures.agent_fixtures import *
+from tests.fixtures.user_fixtures import *
+from tests.fixtures.auth_fixtures import *
+from tests.fixtures.note_fixtures import *
+from tests.fixtures.project_fixtures import *
+from tests.fixtures.agent_fixtures import *
