@@ -210,8 +210,8 @@ class CustomAgent(Base, AuditMixin):
     __tablename__ = "custom_agents"
     __table_args__ = (
         UniqueConstraint('name', 'created_by_user_id', name='uq_custom_agent_name_user'),
-        Index('ix_custom_agents_status', 'status'),
-        Index('ix_custom_agents_creator', 'created_by_user_id'),
+        # Index('ix_custom_agents_status', 'status'),  # Defined in mapped_column
+        # Index('ix_custom_agents_creator', 'created_by_user_id'),  # Defined in AuditMixin
     )
     
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
