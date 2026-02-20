@@ -25,3 +25,8 @@ async def admin_user_headers(auth_headers, admin_user):
 async def manager_user_headers(auth_headers, manager_user):
     """Auth headers for a manager user."""
     return auth_headers(manager_user)
+
+@pytest_asyncio.fixture
+async def super_user_headers(auth_headers, super_user):
+    """Auth headers for a super user."""
+    return auth_headers(super_user)

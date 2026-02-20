@@ -13,7 +13,7 @@ This module provides:
 - Security features (prompt injection protection, permissions)
 """
 
-from app.agents.orchestrator.core import AgentOrchestrator, get_orchestrator, ExecutionResult
+from app.agents.orchestrator.orchestrator import AgentOrchestrator, get_orchestrator, ExecutionResult
 from app.agents.orchestrator.config import OrchestratorConfig, get_orchestrator_config
 from app.agents.orchestrator.security import SecurityGuard, get_security_guard
 from app.agents.orchestrator.exceptions import (
