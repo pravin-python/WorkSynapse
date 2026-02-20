@@ -39,7 +39,7 @@ from app.schemas.agent_builder import (
     # Execution
     AgentExecutionRequest, AgentExecutionResponse,
 )
-from app.agents.orchestrator.core import get_orchestrator
+from app.agents.orchestrator.orchestrator import get_orchestrator
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

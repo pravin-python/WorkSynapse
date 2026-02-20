@@ -20,7 +20,7 @@ from app.agents.orchestrator.models import (
     AgentResponse,
     ExecutionRequest,
 )
-from app.agents.orchestrator.core import AgentOrchestrator, get_orchestrator, ExecutionResult
+from app.agents.orchestrator.orchestrator import AgentOrchestrator, get_orchestrator, ExecutionResult
 from app.agents.orchestrator.exceptions import AgentNotFoundError, OrchestratorError
 
 logger = logging.getLogger(__name__)

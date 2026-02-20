@@ -29,7 +29,7 @@ from app.schemas.agent_chat import (
     ChatFileResponse,
     FileUploadResponse,
 )
-from app.agents.orchestrator.core import get_orchestrator
+from app.agents.orchestrator.orchestrator import get_orchestrator
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

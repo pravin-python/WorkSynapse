@@ -26,7 +26,7 @@ from app.agents.orchestrator.models import (
     LLMProviderEnum,
 )
 from app.agents.orchestrator.service import AgentService
-from app.agents.orchestrator.core import get_orchestrator
+from app.agents.orchestrator.orchestrator import get_orchestrator
 from app.agents.orchestrator.exceptions import (
     AgentNotFoundError,
     OrchestratorError,

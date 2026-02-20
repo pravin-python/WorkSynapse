@@ -4,8 +4,8 @@ from celery import shared_task
 from sqlalchemy.orm import Session
 from app.api.deps import get_db
 from app.models.rag import RagDocument, RagChunk
-from app.ai.rag.embeddings.embedding_service import EmbeddingService
-from app.ai.rag.vectorstore.pgvector_store import PGVectorStore
+from app.agents.rag.embedding_service import EmbeddingService
+from app.agents.rag.vectorstore.pgvector_store import PGVectorStore
 from app.core.config import settings
 
 # Text Extraction (Simple implementation for now)
