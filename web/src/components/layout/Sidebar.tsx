@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import {
-    LayoutDashboard, FolderKanban, CheckSquare, MessageSquare, StickyNote,
-    Timer, Bot, Users, Shield, Settings, LogOut, Cpu, HardDrive
-} from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { uiService, UIMenu, UIMenuItem } from '../../services/ui';
 import './Sidebar.css';
+
+// Map icon string names to actual components
+const IconMap: Record<string, React.ElementType> = {
+    ...LucideIcons
+};
 
 interface SidebarProps {
     isOpen: boolean;
@@ -16,59 +19,41 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, mobileOpen, setMobileOpen }: SidebarProps) {
     const { hasRole, logout } = useAuth();
+    const [menuData, setMenuData] = useState<UIMenu | null>(null);
+    const [loading, setLoading] = useState(true);
 
-    interface NavItem {
-        icon: React.ElementType;
-        label: string;
-        path: string;
-        roles?: string[];
-    }
+    useEffect(() => {
+        const fetchMenu = async () => {
+            try {
+                const data = await uiService.getMenu('sidebar');
+                setMenuData(data);
+            } catch (error) {
+                console.error("Failed to load sidebar menu:", error);
+                // Fallback hardcoded menu could be added here if needed
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    interface NavSection {
-        title: string;
-        items: NavItem[];
-        roles?: string[];
-    }
-
-    const sections: NavSection[] = [
-        {
-            title: 'Main',
-            items: [
-                { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-                { icon: FolderKanban, label: 'Projects', path: '/projects' },
-                { icon: CheckSquare, label: 'Tasks', path: '/tasks' },
-                { icon: MessageSquare, label: 'Chat', path: '/chat' },
-                { icon: StickyNote, label: 'Notes', path: '/notes' },
-            ]
-        },
-        {
-            title: 'Tools',
-            items: [
-                { icon: Timer, label: 'Time Tracking', path: '/tracking' },
-                { icon: Bot, label: 'AI Agents', path: '/ai/agents', roles: ['ADMIN', 'Admin', 'AI_ENGINEER', 'SuperUser'] },
-                { icon: Cpu, label: 'AI Models', path: '/ai/models', roles: ['ADMIN', 'Admin', 'SuperUser', 'STAFF'] },
-                { icon: HardDrive, label: 'Local Models', path: '/ai/local-models', roles: ['ADMIN', 'Admin', 'SuperUser', 'STAFF'] },
-            ]
-        },
-        {
-            title: 'Admin',
-            roles: ['ADMIN', 'Admin', 'SuperUser'],
-            items: [
-                { icon: Users, label: 'Users', path: '/admin/users' },
-                { icon: Shield, label: 'Roles & Permissions', path: '/admin/roles' },
-            ]
-        }
-    ];
+        fetchMenu();
+    }, []);
 
     const canAccess = (roles?: string[]) => {
         if (!roles || roles.length === 0) return true;
-        return roles.some(role => hasRole(role));
+        return roles.some((role: string) => hasRole(role));
     };
 
     const handleLinkClick = () => {
         if (window.innerWidth <= 1024) {
             setMobileOpen(false);
         }
+    };
+
+    // Helper to render icon dynamically
+    const renderIcon = (iconName?: string) => {
+        if (!iconName) return <LucideIcons.Circle size={20} className="nav-icon" />;
+        const IconComponent = IconMap[iconName] || LucideIcons.HelpCircle;
+        return <IconComponent size={20} className="nav-icon" />;
     };
 
     return (
@@ -85,47 +70,50 @@ export function Sidebar({ isOpen, mobileOpen, setMobileOpen }: SidebarProps) {
                         <img src="/logo.png" alt="WorkSynapse" className="logo-icon" style={{ background: 'transparent' }} />
                         <span className={`logo-text ${!isOpen ? 'hidden' : ''}`}>WorkSynapse</span>
                     </Link>
-
-                    {/* Sidebar Toggle - Moved to Header */}
                 </div>
 
                 <div className="sidebar-content">
-                    {sections.map((section, idx) => {
-                        if (section.roles && !canAccess(section.roles)) return null;
+                    {loading ? (
+                        <div className="p-4 text-gray-400">Loading menu...</div>
+                    ) : (
+                        menuData?.items.map((section) => {
+                            // Top level items without parent are sections
+                            if (section.roles && !canAccess(section.roles)) return null;
 
-                        return (
-                            <div key={idx} className="nav-section">
-                                <div className="nav-section-header">
-                                    <span className="section-title">{section.title}</span>
-                                    <div className="section-divider"></div>
+                            return (
+                                <div key={section.id} className="nav-section">
+                                    <div className="nav-section-header">
+                                        <span className="section-title">{section.label}</span>
+                                        <div className="section-divider"></div>
+                                    </div>
+
+                                    <ul className="nav-list">
+                                        {section.children?.map(item => {
+                                            if (item.roles && !canAccess(item.roles)) return null;
+
+                                            return (
+                                                <li key={item.id}>
+                                                    <NavLink
+                                                        to={item.path || '#'}
+                                                        className={({ isActive }) =>
+                                                            `nav-item ${isActive ? 'active' : ''}`
+                                                        }
+                                                        onClick={handleLinkClick}
+                                                    >
+                                                        {renderIcon(item.icon)}
+                                                        <span className="nav-label">{item.label}</span>
+
+                                                        {/* Tooltip for collapsed state */}
+                                                        {!isOpen && <div className="nav-tooltip">{item.label}</div>}
+                                                    </NavLink>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
                                 </div>
-
-                                <ul className="nav-list">
-                                    {section.items.map(item => {
-                                        if (item.roles && !canAccess(item.roles)) return null;
-
-                                        return (
-                                            <li key={item.path}>
-                                                <NavLink
-                                                    to={item.path}
-                                                    className={({ isActive }) =>
-                                                        `nav-item ${isActive ? 'active' : ''}`
-                                                    }
-                                                    onClick={handleLinkClick}
-                                                >
-                                                    <item.icon size={20} className="nav-icon" />
-                                                    <span className="nav-label">{item.label}</span>
-
-                                                    {/* Tooltip for collapsed state */}
-                                                    {!isOpen && <div className="nav-tooltip">{item.label}</div>}
-                                                </NavLink>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            </div>
-                        );
-                    })}
+                            );
+                        })
+                    )}
                 </div>
 
                 <div className="sidebar-footer">
